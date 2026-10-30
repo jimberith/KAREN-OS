@@ -17,7 +17,8 @@
   "portsAttributes": {
     "8000": {
       "label": "KAREN OS web app",
-      "onAutoForward": "openBrowser"
+      "onAutoForward": "openBrowser",
+      "visibility": "private"
     }
   }
 }
