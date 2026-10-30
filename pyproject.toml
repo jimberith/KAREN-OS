@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "karenos"
-version = "0.1.0"
-description = "A modular, laptop-first personal AI assistant"
+version = "0.2.0"
+description = "A modular, browser-accessible personal AI assistant"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
@@ -13,16 +13,21 @@ dependencies = ["python-dotenv>=1.0"]
 
 [project.optional-dependencies]
 ai = ["openai>=1.30"]
+web = ["fastapi>=0.115", "uvicorn[standard]>=0.30", "openai>=1.30"]
 voice = ["pyttsx3>=2.90"]
 vision = ["opencv-python>=4.9"]
 dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.5"]
 
 [project.scripts]
 karenos = "karenos.main:main"
+karenos-web = "karenos.web.run:main"
 karenos-camera = "karenos.vision.camera:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"karenos.web" = ["static/*.html", "static/*.css", "static/*.js"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
