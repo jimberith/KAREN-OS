@@ -4,12 +4,13 @@
 
 KAREN OS is a learning and portfolio project inspired by fictional personal AI assistants. It combines a terminal chat interface, local conversation history, an optional hosted AI provider, optional speech output, and an explicitly launched webcam preview.
 
-> **Status: v0.2.0 browser MVP.** KAREN OS is a user-space assistant application, not a replacement operating system or a fully autonomous AI. It now includes a browser chat interface and a server-side AI integration. Voice input, wake-word activation, direct device camera access, hardware integration, and a desktop HUD remain future work.
+> **Status: v0.3.0 browser MVP.** KAREN OS is a user-space assistant application, not a replacement operating system or a fully autonomous AI. It now includes a browser chat interface and a server-side AI integration. Voice input, wake-word activation, direct device camera access, hardware integration, and a desktop HUD remain future work.
 
-## Features in v0.2.0
+## Features in v0.3.0
 
 - **Browser assistant:** responsive chat page for phones, tablets, and computers.
-- **Protected web backend:** private access code, input limits, basic rate limit, and server-side API key.
+- **Voice controls:** optional browser speech recognition and spoken responses.
+- **Web backend:** input limits, basic rate limit, server-side API key, and optional app password for public hosting.
 - **Offline demo mode:** launch and test the program without an API key.
 - **AI integration:** server-side OpenAI Responses API integration.
 - **Local memory:** conversation history stored in a JSON file on your computer.
@@ -151,7 +152,7 @@ python -m pip install -e ".[web]"
 cp .env.example .env
 ```
 
-Set `KAREN_AI_API_KEY`, `KAREN_AI_MODEL`, and `KAREN_ACCESS_PASSWORD` in your local, untracked `.env` file, then run:
+Set `KAREN_AI_API_KEY` and `KAREN_AI_MODEL` in your local, untracked `.env` file, then run:
 
 ```bash
 uvicorn karenos.web.app:app --host 0.0.0.0 --port 8000
