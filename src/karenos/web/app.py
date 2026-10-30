@@ -171,7 +171,7 @@ async def health() -> dict[str, str]:
 @app.get("/api/status")
 async def status() -> dict[str, object]:
     api_key, model, access_password = _environment()
-    protected = _access_code_required() and bool(access_password)
+    protected = _access_code_required()
     return {
         "application": "KAREN OS",
         "ai_ready": bool(api_key and model),
