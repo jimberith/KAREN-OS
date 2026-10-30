@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090d18">
+  <meta name="description" content="KAREN OS personal AI assistant">
+  <title>KAREN OS | Personal AI</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="KAREN OS home">
+        <span class="brand-mark"><span></span><span></span><span></span></span>
+        <span class="brand-name">KAREN<span>OS</span></span>
+      </a>
+      <div class="topbar-right">
+        <span class="status-pill"><span class="status-dot"></span><span id="system-status">CONNECTING</span></span>
+        <button class="icon-button" id="clear-chat" type="button" title="Start a new chat" aria-label="Start a new chat">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="intro">
+        <div class="eyebrow"><span class="eyebrow-line"></span> PERSONAL AI INTERFACE <span class="eyebrow-line"></span></div>
+        <h1>Your world,<br><span>in conversation.</span></h1>
+        <p class="intro-copy">A personal assistant interface, ready when you are.</p>
+      </section>
+
+      <section class="chat-panel" aria-label="KAREN conversation">
+        <div class="chat-heading">
+          <div class="assistant-id">
+            <div class="assistant-avatar"><span class="avatar-core"></span></div>
+            <div>
+              <div class="assistant-name">KAREN</div>
+              <div class="assistant-subtitle">PERSONAL ASSISTANT <span class="tiny-separator">·</span> WEB SESSION</div>
+            </div>
+          </div>
+          <div class="session-label"><span class="pulse"></span> SECURE SESSION</div>
+        </div>
+
+        <div class="messages" id="messages" aria-live="polite">
+          <article class="message assistant-message">
+            <div class="message-avatar">K</div>
+            <div class="message-content">
+              <div class="message-author">KAREN <span>JUST NOW</span></div>
+              <div class="message-bubble">Hello. I'm KAREN, your personal AI assistant. What would you like to work on?</div>
+            </div>
+          </article>
+        </div>
+
+        <div class="typing-indicator" id="typing-indicator" hidden>
+          <span></span><span></span><span></span><small>KAREN IS THINKING</small>
+        </div>
+
+        <form class="composer" id="chat-form">
+          <label class="sr-only" for="message-input">Write a message</label>
+          <textarea id="message-input" rows="1" maxlength="4000" placeholder="Message KAREN..." autocomplete="off"></textarea>
+          <div class="composer-bottom">
+            <span class="composer-hint">ENTER TO SEND <span>·</span> SHIFT + ENTER FOR NEW LINE</span>
+            <button class="send-button" id="send-button" type="submit" aria-label="Send message">
+              <span>SEND</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12 20 4l-5 16-3-6-8-2Zm8 2 8-10"/></svg>
+            </button>
+          </div>
+        </form>
+        <div class="panel-footer">
+          <span><span class="lock-icon">⌑</span> PRIVATE SERVER CONNECTION</span>
+          <span>AI RESPONSES MAY NEED VERIFICATION</span>
+        </div>
+      </section>
+      <footer class="page-footer">KAREN OS <span>·</span> A PERSONAL AI PROJECT <span>·</span> V0.2</footer>
+    </main>
+  </div>
+
+  <div class="auth-overlay" id="auth-overlay" hidden>
+    <form class="auth-card" id="auth-form">
+      <div class="auth-symbol"><span></span><span></span><span></span></div>
+      <div class="eyebrow">AUTHENTICATION REQUIRED</div>
+      <h2>Welcome back.</h2>
+      <p>This KAREN OS deployment is protected. Enter the private access code configured by its owner.</p>
+      <label for="access-code">ACCESS CODE</label>
+      <input id="access-code" type="password" autocomplete="current-password" placeholder="Enter access code" required>
+      <button class="auth-submit" type="submit" id="auth-submit">ACCESS KAREN OS <span>↗</span></button>
+      <div class="auth-error" id="auth-error" role="alert"></div>
+      <div class="auth-note"><span class="lock-icon">⌑</span> Your access code is sent only to this server for verification.</div>
+    </form>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+</body>
+</html>
