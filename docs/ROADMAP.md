@@ -5,37 +5,51 @@
 - [x] Python package and command-line interface
 - [x] Local JSON conversation history
 - [x] Offline demo mode
-- [x] Optional OpenAI-compatible Chat Completions adapter
+- [x] Optional AI provider adapter
 - [x] Optional text-to-speech output
 - [x] Explicitly launched webcam preview
 - [x] Event bus and service lifecycle foundation
 - [x] Unit tests and CI workflow
 
-## Planned releases
+## v0.2.0 - Browser chat
 
-### v0.2 - Voice interaction
-- Push-to-talk microphone input
-- Speech-to-text provider interface
-- Visible recording state and mute control
+- [x] Responsive browser chat interface
+- [x] FastAPI backend and server-side OpenAI integration
+- [x] Separate app-password protection for public hosting
+- [x] Keep API key out of browser code
 
-### v0.3 - Vision
-- Camera device selection and frame abstraction
-- Optional object detection module
-- Clear camera indicator and no background capture
+## v0.3.0 - Browser interaction
 
-### v0.4 - Desktop dashboard
-- Local chat and system-status interface
-- Settings and provider configuration
-- Keyboard navigation and accessibility
+- [x] Optional browser speech recognition for voice input
+- [x] Optional browser speech synthesis for spoken replies
+- [x] No separate app login in private GitHub Codespaces mode
+- [x] More useful AI provider error messages
+- [x] Private port forwarding by default
 
-### v0.5 - Searchable memory
-- Searchable conversation archive
-- User-controlled export and deletion
-- Optional local embeddings and retrieval
+## Planned: KAREN-inspired capabilities
 
-### v0.6 - Hardware integrations
-- MQTT adapter with explicit device allowlist
-- Simulation mode before live device connection
-- Confirmation step and audit log for device actions
+These are original implementations inspired by the broad functions of a fictional suit assistant. They are not a reproduction of a film character, proprietary software, or movie scenes.
 
-Items under Planned are not implemented in v0.1.0.
+### v0.4 - Vision and situational awareness
+- Camera permission flow with a visible camera indicator
+- Capture a frame on user request
+- Image understanding and object descriptions through a vision-capable model
+- User-controlled image upload; no silent background recording
+
+### v0.5 - Memory and personalization
+- Persistent, user-controlled conversation memory
+- Search and summarize saved notes
+- Export and delete memory controls
+
+### v0.6 - Assistant tools
+- Weather and web-search tools with clear source display
+- Calendar and task integrations after explicit account authorization
+- Confirm-before-action workflow for messages, files, and device actions
+
+### v0.7 - HUD and hardware
+- Live system-status dashboard
+- Optional desktop overlay
+- Simulated device panel before connecting physical hardware
+- MQTT integrations with device allowlists and audit logs
+
+Roadmap items are proposals and are not implemented until checked off.
