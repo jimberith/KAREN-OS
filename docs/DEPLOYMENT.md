@@ -1,6 +1,6 @@
 # Browser deployment guide
 
-KAREN OS v0.3 adds a responsive browser interface served by a FastAPI backend. The browser never receives the OpenAI API key. The backend reads it from a private environment variable and sends requests to the OpenAI API.
+KAREN OS v0.3 adds a responsive browser interface served by a FastAPI backend. The browser never receives the OpenAI API key. The backend reads it from private environment variables and sends requests to the selected OpenAI-compatible provider. Set `KAREN_AI_BASE_URL` to the provider endpoint.
 
 ## Deploy on Render
 
@@ -11,9 +11,10 @@ The repository root contains `render.yaml`, which defines a Render web service.
 3. Connect your GitHub account if asked.
 4. Select the `jimberith/KAREN-OS` repository and the `main` branch.
 5. Render reads `render.yaml`. During the initial Blueprint creation, provide:
-   - `KAREN_AI_API_KEY`: a new key created after revoking the exposed key.
-   - `KAREN_AI_MODEL`: a model identifier enabled for your API account.
+   - `KAREN_AI_API_KEY`: an active key from your selected provider.
+   - `KAREN_AI_MODEL`: a model identifier enabled for your selected provider.
    - `KAREN_ACCESS_PASSWORD`: a long, unique password that people must enter before using your KAREN OS website. Render enables this check with `KAREN_REQUIRE_ACCESS_CODE=true`.
+   - `KAREN_AI_BASE_URL`: the selected provider endpoint, for example `https://generativelanguage.googleapis.com/v1beta/openai/` for Gemini.
 6. Finish creating the Blueprint and wait for the deployment to succeed.
 7. Open the HTTPS URL Render assigns to the service. The same URL works from supported browsers on phones, tablets, and computers.
 
@@ -49,7 +50,7 @@ Open `http://localhost:8000`.
 
 ## Security controls in this version
 
-- The OpenAI key is read only by the backend from `KAREN_AI_API_KEY`.
+- The selected provider key is read only by the backend from `KAREN_AI_API_KEY`. The backend uses `KAREN_AI_BASE_URL` to select an OpenAI-compatible API endpoint.
 - The browser sends a separate app access code in a request header. The code is held in the current browser tab's session storage, not committed to source.
 - The backend compares access codes using a constant-time comparison.
 - Chat input has message-count and text-length limits.
@@ -71,5 +72,5 @@ In GitHub Codespaces, `KAREN_REQUIRE_ACCESS_CODE` is false by default. Keep port
 - **The page says setup required:** add `KAREN_ACCESS_PASSWORD` in Render's Environment settings and redeploy.
 - **The page says AI setup required:** add `KAREN_AI_API_KEY` and `KAREN_AI_MODEL` as environment variables.
 - **Access code rejected:** enter the exact `KAREN_ACCESS_PASSWORD` value saved on Render.
-- **AI provider request failed:** inspect the Render service logs. Confirm the key is active, billing is configured on the OpenAI API account, and the model identifier is available to that account.
+- **AI provider request failed:** inspect the Render service logs. Confirm the key is active, the provider account has available quota, and the model identifier is available to that account.
 - **Page is unavailable:** check the latest Render deployment and the `/health` health-check endpoint.
