@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -21,12 +21,12 @@ class Settings:
     ai_api_key: str = ""
     ai_base_url: str = "https://api.openai.com/v1"
     ai_model: str = ""
-    data_dir: Path = default_data_dir()
+    data_dir: Path = field(default_factory=default_data_dir)
     tts_enabled: bool = False
     log_level: str = "INFO"
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         load_dotenv()
         return cls(
             ai_api_key=os.getenv("KAREN_AI_API_KEY", "").strip(),
