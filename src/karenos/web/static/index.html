@@ -63,6 +63,16 @@
           <label class="sr-only" for="message-input">Write a message</label>
           <textarea id="message-input" rows="1" maxlength="4000" placeholder="Message KAREN..." autocomplete="off"></textarea>
           <div class="composer-bottom">
+            <div class="composer-tools">
+              <button class="tool-button" id="voice-input" type="button" title="Speak to KAREN" aria-label="Speak to KAREN" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"/></svg>
+                <span>VOICE</span>
+              </button>
+              <button class="tool-button" id="voice-output" type="button" title="Read KAREN replies aloud" aria-label="Read KAREN replies aloud" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="M17 9a5 5 0 0 1 0 6m3-9a9 9 0 0 1 0 12"/></svg>
+                <span>SPEAK</span>
+              </button>
+            </div>
             <span class="composer-hint">ENTER TO SEND <span>·</span> SHIFT + ENTER FOR NEW LINE</span>
             <button class="send-button" id="send-button" type="submit" aria-label="Send message">
               <span>SEND</span>
