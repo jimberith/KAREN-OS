@@ -23,7 +23,7 @@ class ConversationStore:
         except (OSError, json.JSONDecodeError) as exc:
             raise RuntimeError(f"Cannot read conversation history at {self.path}") from exc
         if not isinstance(data, list):
-            raise RuntimeError("Conversation history must be a JSON list.")
+            raise TypeError("Conversation history must be a JSON list.")
         return data
 
     def append(self, role: str, content: str) -> None:
