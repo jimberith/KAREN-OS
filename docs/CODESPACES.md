@@ -1,81 +1,75 @@
 # Running KAREN OS in GitHub Codespaces
 
-GitHub Codespaces gives you a cloud development machine. You can run the KAREN OS browser application there and open its forwarded URL from a browser.
+GitHub Codespaces gives you a cloud development machine. You can run KAREN OS there and open its forwarded browser interface.
 
-## 1. Create a Codespace
+## 1. Create or open a Codespace
 
 1. Open https://github.com/jimberith/KAREN-OS.
-2. Select the green **Code** button.
-3. Open the **Codespaces** tab.
-4. Select **Create codespace on main**.
-5. Wait for the Codespace to finish creating the Python environment.
+2. Select **Code → Codespaces**.
+3. Create or open a Codespace on `main`.
+4. Wait for the Dev Container setup to finish. It installs the project dependencies and forwards port 8000 privately.
 
-The repository's `.devcontainer/devcontainer.json` installs the development and AI dependencies and configures port 8000 for automatic forwarding.
+## 2. Add the two required Codespaces secrets
 
-## 2. Add private Codespaces secrets
+The API key previously pasted into chat must remain revoked. Use your replacement key.
 
-The old API key that was pasted into a chat must be revoked. Generate a replacement key first. Never paste the replacement into GitHub source files or into chat.
-
-1. Open your GitHub profile menu, then **Settings**.
-2. Under **Code, planning, and automation**, open **Codespaces**.
-3. Find **Codespaces secrets** and select **New secret**.
-4. Add the following secrets. Give them access only to the `KAREN-OS` repository.
+In GitHub **Settings → Codespaces → Codespaces secrets**, create these secrets and grant access only to `KAREN-OS`:
 
 | Secret name | Value |
 |---|---|
-| `KAREN_AI_API_KEY` | Your newly generated API key |
-| `KAREN_AI_MODEL` | A model identifier enabled for your API account |
-| `KAREN_ACCESS_PASSWORD` | A strong, unique password you choose for KAREN OS |
+| `KAREN_AI_API_KEY` | Your replacement OpenAI API key |
+| `KAREN_AI_MODEL` | `gpt-5.6-luna` if enabled for your API project |
 
-The app password is separate from your API key. Do not reuse your API key as the app password.
+The documented model ID is listed in the [OpenAI API model catalogue](https://platform.openai.com/docs/models). If your project does not have access, choose a model shown as available in your own API account.
 
-5. Save the secrets.
-6. Stop and restart your Codespace so the new secrets are injected into its environment.
+An app-level password is no longer required for a private Codespaces port. The forwarded port must remain **Private**; GitHub account access controls who can open it. Do not change the port visibility to Public.
 
-GitHub explains the Codespaces secret setup here: https://docs.github.com/en/codespaces/managing-your-codespaces/managing-your-account-specific-secrets-for-github-codespaces
+If you previously created `KAREN_ACCESS_PASSWORD`, it is ignored in Codespaces mode unless `KAREN_REQUIRE_ACCESS_CODE=true`. You may delete that old Codespaces secret if you no longer need it.
+
+After changing secrets, stop and restart the Codespace so the environment receives the updates.
 
 ## 3. Start the browser application
 
-Open the integrated terminal in Codespaces and run:
+Open **Terminal → New Terminal**, then run:
 
 ```bash
+git pull --ff-only origin main
+python -m pip install -e ".[web]"
 uvicorn karenos.web.app:app --host 0.0.0.0 --port 8000
 ```
 
-The server should start and show that it is listening on port 8000.
+Keep the terminal running.
 
-## 4. Open KAREN OS in your browser
+## 4. Open the private forwarded port
 
-1. In the bottom panel of the Codespaces editor, select the **Ports** tab.
-2. Find port **8000**. The repository configuration asks Codespaces to forward it automatically.
-3. Select the globe/open-in-browser icon or right-click the port and choose **Open in Browser**.
-4. KAREN OS will open at a forwarded `https://...app.github.dev` URL.
-5. Enter the private `KAREN_ACCESS_PASSWORD` you created as a Codespaces secret.
+1. Open the **Ports** tab in the bottom panel.
+2. Find port `8000`.
+3. Confirm its visibility is **Private**.
+4. Select **Open in Browser**.
 
-Keep the port visibility set to **Private** for personal use. A public forwarded port is accessible to anyone who knows its URL; the app's password is an additional safeguard, not a reason to publish secrets.
+The browser app opens without a separate KAREN password screen. GitHub's private forwarded port is the access boundary.
 
-GitHub's port-forwarding guide: https://docs.github.com/en/codespaces/developing-in-a-codespace/forwarding-ports-in-your-codespace
+## 5. Use voice features
 
-## 5. Use KAREN OS from another device
+The browser interface includes:
+- **VOICE**: uses your browser's speech recognition, if supported. The browser will ask for microphone permission.
+- **SPEAK**: reads KAREN's responses using the browser's speech synthesis.
 
-Sign in to GitHub on the other device and reopen the same Codespace from https://github.com/codespaces. Start the server again if it is not already running, then open port 8000 from the Ports tab.
+Voice recognition support depends on the browser and its speech service. Browser or operating-system speech services may process audio outside the KAREN backend. Use text chat if you do not want to grant microphone access.
 
-A Codespaces forwarded URL is useful for development and testing. The Codespace and its server can stop when idle or when the Codespace is stopped. For a persistent public website, deploy the app using the Render instructions in [DEPLOYMENT.md](DEPLOYMENT.md).
+## 6. If AI responses fail
 
-## Terminal-only version
+The web app now shows a more specific message for common errors:
+- API key rejected: check that the replacement key is active.
+- Model not found: check `KAREN_AI_MODEL`; the current documented example is `gpt-5.6-luna`.
+- Model permission denied: check model access for the API project.
+- Credits or spend limit exhausted: check [OpenAI API billing](https://platform.openai.com/settings/organization/billing/overview).
+- Network problem: check the Codespaces terminal output.
 
-You can also run the simpler command-line assistant in the Codespace:
+The API key stays in the Codespaces environment and is only used by the backend. Never put it in browser code, source files, or screenshots.
 
-```bash
-karenos
-```
+## 7. Use KAREN OS from another device
 
-Type `/help` for its commands and `/quit` to exit.
+Sign in to the same GitHub account on the other device, open https://github.com/codespaces, resume this Codespace, start the server if needed, and open its private forwarded port. A Codespace is not an always-on production server and may stop when idle.
 
-## Notes
-
-- The OpenAI API key stays in the Codespace environment and is used by the Python backend. It is never included in browser JavaScript.
-- Chat text is sent to your configured AI provider when you submit it.
-- The browser chat history is held in the current page session; refreshing the page clears it.
-- Browser camera and microphone access are not implemented in the web version yet.
-- ChatGPT subscription billing and OpenAI API billing are separate.
+For public hosting, use the Render deployment guide. Public hosting requires a separate app access code to protect your API quota.
