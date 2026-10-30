@@ -1,3 +1,5 @@
+import pytest
+
 from karenos.brain.assistant import Assistant
 from karenos.config import Settings
 from karenos.memory.store import ConversationStore
@@ -42,6 +44,3 @@ def test_assistant_rejects_blank_prompt(tmp_path):
     )
     with pytest.raises(ValueError):
         assistant.respond("   ")
-
-
-import pytest
