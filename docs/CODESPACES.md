@@ -16,7 +16,7 @@ KAREN OS supports OpenAI-compatible Chat Completions endpoints. You can use Open
 | Provider | API base URL | Example model ID |
 |---|---|---|
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-3.8-flash` |
-| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
+| Groq | `https://api.groq.com/openai/v1` | `openai/gpt-oss-120b` |
 | OpenRouter | `https://openrouter.ai/api/v1` | `openrouter/free` |
 | OpenAI | `https://api.openai.com/v1` | Use a model enabled for your API project |
 
