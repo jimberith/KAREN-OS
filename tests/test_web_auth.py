@@ -1,8 +1,11 @@
+from types import SimpleNamespace
+
+import pytest
 from fastapi.testclient import TestClient
 
-from karenos.web.app import app
+import karenos.web.app as web_app
 
-client = TestClient(app)
+client = TestClient(web_app.app)
 
 
 def test_health_endpoint():
@@ -15,6 +18,7 @@ def test_status_does_not_expose_credentials(monkeypatch):
     monkeypatch.setenv("KAREN_AI_API_KEY", "test-secret-value")
     monkeypatch.setenv("KAREN_AI_MODEL", "test-model")
     monkeypatch.setenv("KAREN_ACCESS_PASSWORD", "test-access-code")
+    monkeypatch.setenv("KAREN_AI_BASE_URL", "https://test.invalid/v1")
     monkeypatch.setenv("KAREN_REQUIRE_ACCESS_CODE", "true")
 
     response = client.get("/api/status")
@@ -69,6 +73,7 @@ def test_chat_rejects_when_api_key_missing(monkeypatch):
     monkeypatch.setenv("KAREN_REQUIRE_ACCESS_CODE", "false")
     monkeypatch.delenv("KAREN_AI_API_KEY", raising=False)
     monkeypatch.setenv("KAREN_AI_MODEL", "test-model")
+    monkeypatch.setenv("KAREN_AI_BASE_URL", "https://test.invalid/v1")
 
     response = client.post(
         "/api/chat",
@@ -76,3 +81,59 @@ def test_chat_rejects_when_api_key_missing(monkeypatch):
     )
 
     assert response.status_code == 503
+
+
+def test_chat_uses_configured_openai_compatible_provider(monkeypatch):
+    monkeypatch.setenv("KAREN_REQUIRE_ACCESS_CODE", "false")
+    monkeypatch.setenv("KAREN_AI_API_KEY", "provider-test-key")
+    monkeypatch.setenv("KAREN_AI_MODEL", "gemini-example")
+    monkeypatch.setenv(
+        "KAREN_AI_BASE_URL",
+        "https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+    captured = {}
+
+    class FakeCompletions:
+        async def create(self, **kwargs):
+            captured["request"] = kwargs
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="Hello from test."))]
+            )
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            captured["client"] = kwargs
+            self.chat = SimpleNamespace(completions=FakeCompletions())
+
+        async def close(self):
+            return None
+
+    monkeypatch.setattr(web_app, "AsyncOpenAI", FakeClient)
+    response = client.post(
+        "/api/chat",
+        json={"messages": [{"role": "user", "content": "Hello KAREN"}]},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == "Hello from test."
+    assert captured["client"]["api_key"] == "provider-test-key"
+    assert captured["client"]["base_url"] == (
+        "https://generativelanguage.googleapis.com/v1beta/openai/"
+    )
+    assert captured["request"]["model"] == "gemini-example"
+    assert captured["request"]["messages"][-1] == {
+        "role": "user",
+        "content": "Hello KAREN",
+    }
+
+
+def test_chat_rejects_when_last_message_is_not_user(monkeypatch):
+    monkeypatch.setenv("KAREN_REQUIRE_ACCESS_CODE", "false")
+    monkeypatch.setenv("KAREN_AI_API_KEY", "provider-test-key")
+    monkeypatch.setenv("KAREN_AI_MODEL", "gemini-example")
+    monkeypatch.setenv("KAREN_AI_BASE_URL", "https://test.invalid/v1")
+    response = client.post(
+        "/api/chat",
+        json={"messages": [{"role": "assistant", "content": "Hello"}]},
+    )
+    assert response.status_code == 400
