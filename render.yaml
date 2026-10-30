@@ -11,6 +11,8 @@ services:
         sync: false
       - key: KAREN_AI_MODEL
         sync: false
+      - key: KAREN_AI_BASE_URL
+        value: https://api.openai.com/v1
       - key: KAREN_ACCESS_PASSWORD
         sync: false
       - key: KAREN_LOG_LEVEL
