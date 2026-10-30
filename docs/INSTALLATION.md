@@ -75,3 +75,20 @@ Set `KAREN_TTS_ENABLED=true` in `.env`, then launch `karenos`. Linux may also re
 ```bash
 pytest
 ```
+
+
+## Run the browser interface locally
+
+Install the web dependencies:
+
+```bash
+python -m pip install -e ".[web]"
+```
+
+Set `KAREN_AI_API_KEY`, `KAREN_AI_MODEL`, and `KAREN_ACCESS_PASSWORD` in your local `.env` file, then run:
+
+```bash
+uvicorn karenos.web.app:app --host 0.0.0.0 --port 8000
+```
+
+Open `http://localhost:8000` in your browser. Use a separate app password for `KAREN_ACCESS_PASSWORD`; it is not your OpenAI API key.
