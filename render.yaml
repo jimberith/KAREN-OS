@@ -15,3 +15,5 @@ services:
         sync: false
       - key: KAREN_LOG_LEVEL
         value: INFO
+      - key: KAREN_REQUIRE_ACCESS_CODE
+        value: "true"
