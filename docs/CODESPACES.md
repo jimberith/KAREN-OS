@@ -9,26 +9,51 @@ GitHub Codespaces gives you a cloud development machine. You can run KAREN OS th
 3. Create or open a Codespace on `main`.
 4. Wait for the Dev Container setup to finish. It installs the project dependencies and forwards port 8000 privately.
 
-## 2. Add the two required Codespaces secrets
+## 2. Choose an AI provider
 
-The API key previously pasted into chat must remain revoked. Use your replacement key.
+KAREN OS supports OpenAI-compatible Chat Completions endpoints. You can use OpenAI, Google Gemini, Groq, or OpenRouter by changing the three Codespaces secrets below.
 
-In GitHub **Settings → Codespaces → Codespaces secrets**, create these secrets and grant access only to `KAREN-OS`:
+| Provider | API base URL | Example model ID |
+|---|---|---|
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-3.8-flash` |
+| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
+| OpenRouter | `https://openrouter.ai/api/v1` | `openrouter/free` |
+| OpenAI | `https://api.openai.com/v1` | Use a model enabled for your API project |
 
-| Secret name | Value |
+Provider model IDs and free-tier access change. Verify the selected model in the provider's current dashboard before using it.
+
+### Create a provider API key
+
+- Google Gemini: https://aistudio.google.com/apikey
+- Groq: https://console.groq.com/keys
+- OpenRouter: https://openrouter.ai/keys
+- OpenAI: https://platform.openai.com/api-keys
+
+## 3. Configure GitHub Codespaces secrets
+
+Open GitHub **Settings → Codespaces → Codespaces secrets**:
+
+https://github.com/settings/codespaces
+
+Create or edit these secrets. Give each access only to `KAREN-OS`.
+
+| Secret name | What to enter |
 |---|---|
-| `KAREN_AI_API_KEY` | Your replacement OpenAI API key |
-| `KAREN_AI_MODEL` | `gpt-5.6-luna` if enabled for your API project |
+| `KAREN_AI_API_KEY` | API key from the provider you selected |
+| `KAREN_AI_BASE_URL` | Provider's API base URL from the table above |
+| `KAREN_AI_MODEL` | Model ID from the provider's current catalogue |
 
-The documented model ID is listed in the [OpenAI API model catalogue](https://platform.openai.com/docs/models). If your project does not have access, choose a model shown as available in your own API account.
+The previous OpenAI key shared in chat should stay revoked. Never put a replacement key in a source file, browser JavaScript, screenshot, or chat message.
 
-An app-level password is no longer required for a private Codespaces port. The forwarded port must remain **Private**; GitHub account access controls who can open it. Do not change the port visibility to Public.
+For Google Gemini's free tier, check its data-use terms before sending private or sensitive messages. Google's pricing page marks free-tier data as usable to improve its products. See https://ai.google.dev/gemini-api/docs/pricing.
 
-If you previously created `KAREN_ACCESS_PASSWORD`, it is ignored in Codespaces mode unless `KAREN_REQUIRE_ACCESS_CODE=true`. You may delete that old Codespaces secret if you no longer need it.
+OpenRouter offers free model variants, but free usage is rate-limited. Its current free plan lists a daily request cap; check the live limits at https://openrouter.ai/collections/free-models.
+
+Groq's exact request/token limits depend on the model and account; see https://console.groq.com/docs/rate-limits.
 
 After changing secrets, stop and restart the Codespace so the environment receives the updates.
 
-## 3. Start the browser application
+## 4. Start the browser application
 
 Open **Terminal → New Terminal**, then run:
 
@@ -40,36 +65,30 @@ uvicorn karenos.web.app:app --host 0.0.0.0 --port 8000
 
 Keep the terminal running.
 
-## 4. Open the private forwarded port
+## 5. Open the private forwarded port
 
 1. Open the **Ports** tab in the bottom panel.
 2. Find port `8000`.
 3. Confirm its visibility is **Private**.
 4. Select **Open in Browser**.
 
-The browser app opens without a separate KAREN password screen. GitHub's private forwarded port is the access boundary.
+Codespaces mode does not show a second KAREN password screen. GitHub's private forwarded port controls access.
 
-## 5. Use voice features
+## 6. Browser voice controls
 
-The browser interface includes:
-- **VOICE**: uses your browser's speech recognition, if supported. The browser will ask for microphone permission.
-- **SPEAK**: reads KAREN's responses using the browser's speech synthesis.
+- **VOICE**: uses browser speech recognition when supported. Your browser asks for microphone permission.
+- **SPEAK**: reads assistant replies aloud using browser speech synthesis.
 
-Voice recognition support depends on the browser and its speech service. Browser or operating-system speech services may process audio outside the KAREN backend. Use text chat if you do not want to grant microphone access.
-
-## 6. If AI responses fail
-
-The web app now shows a more specific message for common errors:
-- API key rejected: check that the replacement key is active.
-- Model not found: check `KAREN_AI_MODEL`; the current documented example is `gpt-5.6-luna`.
-- Model permission denied: check model access for the API project.
-- Credits or spend limit exhausted: check [OpenAI API billing](https://platform.openai.com/settings/organization/billing/overview).
-- Network problem: check the Codespaces terminal output.
-
-The API key stays in the Codespaces environment and is only used by the backend. Never put it in browser code, source files, or screenshots.
+Recognition and audio handling depend on the browser and its speech service. Use text chat if you do not want to grant microphone permission.
 
 ## 7. Use KAREN OS from another device
 
-Sign in to the same GitHub account on the other device, open https://github.com/codespaces, resume this Codespace, start the server if needed, and open its private forwarded port. A Codespace is not an always-on production server and may stop when idle.
+Sign in to the same GitHub account on another device, open https://github.com/codespaces, resume this Codespace, start the server if needed, and open its private forwarded port.
 
-For public hosting, use the Render deployment guide. Public hosting requires a separate app access code to protect your API quota.
+A Codespace is for development and testing. It can stop when idle. For public hosting, use the Render deployment guide and keep the app access code enabled.
+
+## Notes
+
+- The API key remains on the backend and is never sent to browser JavaScript.
+- The browser sends conversation messages to the configured AI provider when you submit them.
+- Chat history is held in the current browser page session; refreshing the page clears it.
