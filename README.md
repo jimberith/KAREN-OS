@@ -12,7 +12,7 @@ KAREN OS is a learning and portfolio project inspired by fictional personal AI a
 - **Voice controls:** optional browser speech recognition and spoken responses.
 - **Web backend:** input limits, basic rate limit, server-side API key, and optional app password for public hosting.
 - **Offline demo mode:** launch and test the program without an API key.
-- **AI integration:** server-side OpenAI Responses API integration.
+- **AI integration:** server-side integration with OpenAI-compatible providers (OpenAI, Gemini, Groq, and OpenRouter).
 - **Local memory:** conversation history stored in a JSON file on your computer.
 - **Optional speech output:** text-to-speech using `pyttsx3`.
 - **Optional vision preview:** manually launched webcam preview using OpenCV.
