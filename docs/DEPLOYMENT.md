@@ -1,6 +1,6 @@
 # Browser deployment guide
 
-KAREN OS v0.2 adds a responsive browser interface served by a FastAPI backend. The browser never receives the OpenAI API key. The backend reads it from a private environment variable and sends requests to the OpenAI API.
+KAREN OS v0.3 adds a responsive browser interface served by a FastAPI backend. The browser never receives the OpenAI API key. The backend reads it from a private environment variable and sends requests to the OpenAI API.
 
 ## Deploy on Render
 
@@ -13,7 +13,7 @@ The repository root contains `render.yaml`, which defines a Render web service.
 5. Render reads `render.yaml`. During the initial Blueprint creation, provide:
    - `KAREN_AI_API_KEY`: a new key created after revoking the exposed key.
    - `KAREN_AI_MODEL`: a model identifier enabled for your API account.
-   - `KAREN_ACCESS_PASSWORD`: a long, unique password that people must enter before using your KAREN OS website.
+   - `KAREN_ACCESS_PASSWORD`: a long, unique password that people must enter before using your KAREN OS website. Render enables this check with `KAREN_REQUIRE_ACCESS_CODE=true`.
 6. Finish creating the Blueprint and wait for the deployment to succeed.
 7. Open the HTTPS URL Render assigns to the service. The same URL works from supported browsers on phones, tablets, and computers.
 
@@ -56,11 +56,15 @@ Open `http://localhost:8000`.
 - The API applies a basic per-client request limit.
 - Basic browser security headers are enabled.
 - Conversation context is kept in the current page session. It is not saved to a server database; refreshing the page clears the chat.
-- The browser version does not currently access the phone or laptop camera or microphone. Those require separate browser permission flows and HTTPS-compatible features.
+- The browser version supports optional speech input and speech output using browser speech APIs. Recognition support and audio handling depend on the browser. Camera analysis is not implemented yet.
 
 ## Hosting and usage notes
 
 Render's free web services may spin down when idle and can take time to start again. Free plans also have resource and usage limits. Check Render's current plan and billing details before relying on this as an always-on service. OpenAI API usage is billed separately according to your API account and model.
+
+## Codespaces without a second app login
+
+In GitHub Codespaces, `KAREN_REQUIRE_ACCESS_CODE` is false by default. Keep port 8000 Private; GitHub controls access to the forwarded port. Do not make an unauthenticated Render deployment public.
 
 ## Troubleshooting
 
