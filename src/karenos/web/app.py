@@ -1,4 +1,4 @@
-"""Secure FastAPI web application for browser-based KAREN OS."""
+"""Browser application backend for KAREN OS."""
 
 from __future__ import annotations
 
@@ -14,7 +14,15 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from openai import AsyncOpenAI
+from openai import (
+    APIConnectionError,
+    APIStatusError,
+    AsyncOpenAI,
+    AuthenticationError,
+    NotFoundError,
+    PermissionDeniedError,
+    RateLimitError,
+)
 from pydantic import BaseModel, Field, field_validator
 
 load_dotenv()
@@ -24,7 +32,7 @@ STATIC_DIR = Path(__file__).parent / "static"
 app = FastAPI(
     title="KAREN OS",
     description="Browser interface for the KAREN OS personal assistant.",
-    version="0.2.0",
+    version="0.3.0",
     docs_url=None,
     redoc_url=None,
 )
@@ -59,7 +67,16 @@ def _environment() -> tuple[str, str, str]:
     return api_key, model, access_password
 
 
+def _access_code_required() -> bool:
+    """App password is opt-in; private Codespaces ports rely on GitHub access control."""
+    return os.getenv("KAREN_REQUIRE_ACCESS_CODE", "false").strip().lower() in {
+        "1", "true", "yes"
+    }
+
+
 def _require_access(provided_code: str | None) -> None:
+    if not _access_code_required():
+        return
     _, _, expected_code = _environment()
     if not expected_code:
         raise HTTPException(
@@ -84,13 +101,59 @@ def _check_rate_limit(request: Request) -> None:
     timestamps.append(now)
 
 
+def _provider_error_message(exc: Exception) -> str:
+    """Return actionable provider errors without exposing credentials or raw request data."""
+    if isinstance(exc, AuthenticationError):
+        return (
+            "OpenAI rejected the API key. Check that KAREN_AI_API_KEY contains the active "
+            "replacement key and that it belongs to the intended API project."
+        )
+    if isinstance(exc, PermissionDeniedError):
+        return (
+            "The API key or project does not have permission to use this model. Check "
+            "KAREN_AI_MODEL and the model access settings for your API project."
+        )
+    if isinstance(exc, NotFoundError):
+        return (
+            "OpenAI could not find the configured model. Set KAREN_AI_MODEL to a model ID "
+            "listed in the OpenAI API model catalogue, such as gpt-5.6-luna if enabled "
+            "for your account."
+        )
+    if isinstance(exc, RateLimitError):
+        code = str(getattr(exc, "code", "") or "").lower()
+        if code in {"insufficient_quota", "credit_balance_exhausted"}:
+            return (
+                "The OpenAI API project has no available credit or has reached a spend "
+                "limit. Check API billing, project budget, and usage limits."
+            )
+        return (
+            "The OpenAI API rate limit was reached. Wait briefly and try again, or review "
+            "the model's request and token limits."
+        )
+    if isinstance(exc, APIConnectionError):
+        return (
+            "KAREN OS could not connect to the OpenAI API. Check the Codespace network "
+            "connection and try again."
+        )
+    if isinstance(exc, APIStatusError):
+        status = getattr(exc, "status_code", "unknown")
+        return (
+            f"The OpenAI API returned HTTP {status}. Check the selected model, API project "
+            "permissions, and the Codespaces terminal log for details."
+        )
+    return (
+        "The AI provider request failed unexpectedly. Check the Codespaces terminal log "
+        "for the exception type and try again."
+    )
+
+
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=()"
+    response.headers["Permissions-Policy"] = "camera=(self), microphone=(self)"
     response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -108,10 +171,11 @@ async def health() -> dict[str, str]:
 @app.get("/api/status")
 async def status() -> dict[str, object]:
     api_key, model, access_password = _environment()
+    protected = _access_code_required() and bool(access_password)
     return {
         "application": "KAREN OS",
         "ai_ready": bool(api_key and model),
-        "access_protected": bool(access_password),
+        "access_protected": protected,
     }
 
 
@@ -136,12 +200,12 @@ async def chat(
     if not api_key:
         raise HTTPException(
             status_code=503,
-            detail="The app owner has not configured the AI API key on the hosting service.",
+            detail="The app owner has not configured KAREN_AI_API_KEY in the server environment.",
         )
     if not model:
         raise HTTPException(
             status_code=503,
-            detail="The app owner has not configured KAREN_AI_MODEL on the hosting service.",
+            detail="The app owner has not configured KAREN_AI_MODEL in the server environment.",
         )
     if payload.messages[-1].role != "user":
         raise HTTPException(status_code=400, detail="The last message must be from the user.")
@@ -150,15 +214,16 @@ async def chat(
         {"role": message.role, "content": message.content}
         for message in payload.messages
     ]
-    client = AsyncOpenAI(api_key=api_key)
+    client = AsyncOpenAI(api_key=api_key, timeout=60.0, max_retries=0)
     try:
         result = await client.responses.create(
             model=model,
             instructions=(
-                "You are KAREN, a capable personal AI assistant. Be helpful, clear, and "
-                "accurate. Admit uncertainty. Never claim to have accessed a device, "
-                "camera, file, account, or external service unless an available tool "
-                "actually performed that action. Ask before consequential actions."
+                "You are KAREN, a practical personal AI assistant inspired by a capable "
+                "science-fiction assistant. Be helpful, concise, clear, and accurate. "
+                "Admit uncertainty. Never claim to have accessed a device, camera, file, "
+                "account, or external service unless an available tool actually performed "
+                "that action. Ask before consequential actions."
             ),
             input=conversation,
             max_output_tokens=900,
@@ -168,10 +233,7 @@ async def chat(
             answer = "I couldn't produce a text response. Please try again."
         return {"reply": answer}
     except Exception as exc:
-        logger.exception("AI provider request failed")
-        raise HTTPException(
-            status_code=502,
-            detail="The AI provider request failed. Check the server configuration and logs.",
-        ) from exc
+        logger.exception("AI provider request failed (%s)", type(exc).__name__)
+        raise HTTPException(status_code=502, detail=_provider_error_message(exc)) from exc
     finally:
         await client.close()
