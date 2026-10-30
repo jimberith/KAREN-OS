@@ -40,7 +40,7 @@ Do not place an API key in a committed file, README, source code, or chat messag
 6. If needed, create these additional Codespaces secrets:
    - `KAREN_AI_BASE_URL` with value `https://api.openai.com/v1`
    - `KAREN_AI_MODEL` with a model identifier supported by your API account
-7. Stop and recreate/restart the Codespace so the updated secret is available in its environment, then run `karenos` again.
+7. Stop and restart the Codespace so the updated secret is available in its environment, then run `karenos` again.
 
 Codespaces secrets are exposed to the running development environment as environment variables. The application loads these variables directly. The AI provider key is not stored in the Git repository.
 
