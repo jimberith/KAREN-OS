@@ -1,16 +1,17 @@
 # KAREN OS
 
-**A modular, laptop-first personal AI assistant built with Python.**
+**A modular, browser-accessible personal AI assistant built with Python.**
 
 KAREN OS is a learning and portfolio project inspired by fictional personal AI assistants. It combines a terminal chat interface, local conversation history, an optional hosted AI provider, optional speech output, and an explicitly launched webcam preview.
 
-> **Status: v0.1.0 foundation.** This is a user-space assistant application, not a replacement operating system or an autonomous AI. The current version is designed to run on a Linux laptop first. Hardware integration, wake-word activation, and a desktop HUD are future work.
+> **Status: v0.2.0 browser MVP.** KAREN OS is a user-space assistant application, not a replacement operating system or a fully autonomous AI. It now includes a browser chat interface and a server-side AI integration. Voice input, wake-word activation, direct device camera access, hardware integration, and a desktop HUD remain future work.
 
-## Features in v0.1.0
+## Features in v0.2.0
 
-- **Terminal assistant:** simple interactive chat with `/help`, `/clear`, and `/quit`.
+- **Browser assistant:** responsive chat page for phones, tablets, and computers.
+- **Protected web backend:** private access code, input limits, basic rate limit, and server-side API key.
 - **Offline demo mode:** launch and test the program without an API key.
-- **Optional AI provider:** adapter for services that support the OpenAI Chat Completions API.
+- **AI integration:** server-side OpenAI Responses API integration.
 - **Local memory:** conversation history stored in a JSON file on your computer.
 - **Optional speech output:** text-to-speech using `pyttsx3`.
 - **Optional vision preview:** manually launched webcam preview using OpenCV.
@@ -46,7 +47,11 @@ You can run the terminal version in a cloud development environment:
 
 To enable AI responses, add your API credentials as GitHub Codespaces secrets. See [docs/CODESPACES.md](docs/CODESPACES.md) for the full instructions and security notes.
 
-Codespaces runs the terminal app remotely. It does not yet provide a public mobile chat website or direct access to the device's local webcam and microphone.
+Codespaces runs the terminal app remotely. For a public browser URL, deploy the web application using the Render instructions below.
+
+## Deploy the browser app to a public URL
+
+A Render Blueprint is included in the repository. Follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) to deploy the web interface and configure private server environment variables. Do not commit API keys or paste them into source files.
 
 ## Enable AI responses
 
