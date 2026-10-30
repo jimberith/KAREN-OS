@@ -12,10 +12,15 @@ const statusText = document.getElementById("system-status");
 const statusPill = document.querySelector(".status-pill");
 const clearButton = document.getElementById("clear-chat");
 const toast = document.getElementById("toast");
+const micButton = document.getElementById("voice-input");
+const speakButton = document.getElementById("voice-output");
 
 let conversation = [];
 let accessCode = sessionStorage.getItem("karenAccessCode") || "";
 let waiting = false;
+let speakReplies = false;
+let recognition = null;
+let listening = false;
 
 function setStatus(text, mode = "") {
   statusText.textContent = text;
@@ -79,12 +84,19 @@ async function initialize() {
     const response = await fetch("/api/status");
     const payload = await response.json();
     if (!response.ok) throw new Error("The KAREN OS server is unavailable.");
+    setStatus(
+      payload.ai_ready ? "AI SYSTEM READY" : "AI SETUP REQUIRED",
+      payload.ai_ready ? "ready" : "error"
+    );
+
+    // Codespaces uses GitHub's private forwarded-port access control; no second app login.
     if (!payload.access_protected) {
-      setStatus("SETUP REQUIRED", "error");
-      showAuth("The owner must set KAREN_ACCESS_PASSWORD on the server.");
+      authOverlay.hidden = true;
+      accessCode = "";
+      sessionStorage.removeItem("karenAccessCode");
       return;
     }
-    setStatus(payload.ai_ready ? "AI SYSTEM READY" : "AI SETUP REQUIRED", payload.ai_ready ? "ready" : "error");
+
     if (accessCode) {
       try {
         await verifyAccess(accessCode);
@@ -132,21 +144,30 @@ function setWaiting(value) {
   if (!value) input.focus();
 }
 
+function speak(text) {
+  if (!speakReplies || !("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1.02;
+  utterance.pitch = 1.0;
+  window.speechSynthesis.speak(utterance);
+}
+
 async function sendMessage(text) {
-  if (waiting || !accessCode) return;
+  if (waiting) return;
   const userMessage = { role: "user", content: text };
   const nextConversation = [...conversation, userMessage].slice(-20);
   appendMessage("user", text);
   conversation = nextConversation;
   setWaiting(true);
 
+  const headers = { "Content-Type": "application/json" };
+  if (accessCode) headers["X-Karen-Access-Code"] = accessCode;
+
   try {
     const response = await fetch("/api/chat", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Karen-Access-Code": accessCode
-      },
+      headers,
       body: JSON.stringify({ messages: conversation })
     });
     const payload = await response.json().catch(() => ({}));
@@ -160,8 +181,9 @@ async function sendMessage(text) {
     const reply = String(payload.reply || "I didn't receive a response.");
     conversation = [...conversation, { role: "assistant", content: reply }].slice(-20);
     appendMessage("assistant", reply);
+    speak(reply);
   } catch (error) {
-    appendMessage("assistant", "I couldn't complete that request. " + error.message);
+    appendMessage("assistant", "KAREN connection error: " + error.message);
   } finally {
     setWaiting(false);
   }
@@ -190,9 +212,64 @@ input.addEventListener("keydown", (event) => {
 
 clearButton.addEventListener("click", () => {
   conversation = [];
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   messagesElement.replaceChildren();
   appendMessage("assistant", "New session started. What would you like to work on?");
   notify("Conversation cleared.");
 });
+
+speakButton.addEventListener("click", () => {
+  if (!("speechSynthesis" in window)) {
+    notify("Speech output is not supported in this browser.");
+    return;
+  }
+  speakReplies = !speakReplies;
+  speakButton.classList.toggle("active", speakReplies);
+  speakButton.setAttribute("aria-pressed", String(speakReplies));
+  speakButton.title = speakReplies ? "Turn voice replies off" : "Read KAREN replies aloud";
+  if (!speakReplies) window.speechSynthesis.cancel();
+  notify(speakReplies ? "Voice replies enabled." : "Voice replies disabled.");
+});
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.lang = navigator.language || "en-US";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.onstart = () => {
+    listening = true;
+    micButton.classList.add("active");
+    micButton.setAttribute("aria-pressed", "true");
+    notify("Listening. Speak now.");
+  };
+  recognition.onend = () => {
+    listening = false;
+    micButton.classList.remove("active");
+    micButton.setAttribute("aria-pressed", "false");
+  };
+  recognition.onerror = (event) => {
+    notify(event.error === "not-allowed" ? "Microphone permission was denied." : "Voice input failed: " + event.error);
+  };
+  recognition.onresult = (event) => {
+    const spoken = event.results[0][0].transcript.trim();
+    if (spoken) {
+      input.value = spoken;
+      form.requestSubmit();
+    }
+  };
+  micButton.addEventListener("click", () => {
+    if (listening) recognition.stop();
+    else {
+      try { recognition.start(); }
+      catch { notify("Voice input is already starting."); }
+    }
+  });
+} else {
+  micButton.addEventListener("click", () => {
+    notify("Voice input is not supported here. Try an updated Chrome browser.");
+  });
+  micButton.title = "Voice input unsupported in this browser";
+}
 
 initialize();
