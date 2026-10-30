@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: karen-os-web
+    runtime: python
+    plan: free
+    buildCommand: python -m pip install --upgrade pip && python -m pip install ".[web]"
+    startCommand: uvicorn karenos.web.app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: KAREN_AI_API_KEY
+        sync: false
+      - key: KAREN_AI_MODEL
+        sync: false
+      - key: KAREN_ACCESS_PASSWORD
+        sync: false
+      - key: KAREN_LOG_LEVEL
+        value: INFO
