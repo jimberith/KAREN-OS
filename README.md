@@ -136,3 +136,36 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Run KAREN OS in a browser (hosted web app)
+
+The repository includes a responsive browser interface and a Python API server. To run it locally:
+
+```bash
+python -m pip install -e ".[web]"
+cp .env.example .env
+```
+
+Set `KAREN_AI_API_KEY`, `KAREN_AI_MODEL`, and `KAREN_ACCESS_PASSWORD` in your local, untracked `.env` file, then run:
+
+```bash
+uvicorn karenos.web.app:app --host 0.0.0.0 --port 8000
+```
+
+Open `http://localhost:8000` in your browser.
+
+### Deploy to a public URL with Render
+
+A `render.yaml` Blueprint is included:
+
+1. Create or sign in to a Render account.
+2. Choose **New → Blueprint**.
+3. Connect your GitHub account and select `jimberith/KAREN-OS`.
+4. Render reads `render.yaml` and asks for the three private values.
+5. Enter a **newly rotated** OpenAI API key, a model available to your API account, and a unique KAREN app access password.
+6. Create the Blueprint and wait for the first deploy to finish.
+7. Open the Render-provided HTTPS URL on your phone, laptop, or tablet.
+
+The API key is held by the server as an environment variable. It is not embedded in browser JavaScript or committed to Git. The access password prevents visitors from using the app without authorization.
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the complete guide and security notes.
