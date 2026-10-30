@@ -36,6 +36,18 @@ The app starts in offline demo mode with no API key. You can also run it as a Py
 python -m karenos
 ```
 
+## Run from any device with GitHub Codespaces
+
+You can run the terminal version in a cloud development environment:
+
+1. Open the repository and choose **Code → Codespaces → Create codespace on main**.
+2. Wait for the Codespace to prepare the environment.
+3. In its terminal, run `karenos`.
+
+To enable AI responses, add your API credentials as GitHub Codespaces secrets. See [docs/CODESPACES.md](docs/CODESPACES.md) for the full instructions and security notes.
+
+Codespaces runs the terminal app remotely. It does not yet provide a public mobile chat website or direct access to the device's local webcam and microphone.
+
 ## Enable AI responses
 
 Install the optional AI dependency:
