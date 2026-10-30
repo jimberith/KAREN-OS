@@ -32,7 +32,7 @@ STATIC_DIR = Path(__file__).parent / "static"
 app = FastAPI(
     title="KAREN OS",
     description="Browser interface for the KAREN OS personal assistant.",
-    version="0.3.0",
+    version="0.3.1",
     docs_url=None,
     redoc_url=None,
 )
@@ -60,11 +60,12 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage] = Field(min_length=1, max_length=20)
 
 
-def _environment() -> tuple[str, str, str]:
+def _environment() -> tuple[str, str, str, str]:
     api_key = os.getenv("KAREN_AI_API_KEY", "").strip()
     model = os.getenv("KAREN_AI_MODEL", "").strip()
     access_password = os.getenv("KAREN_ACCESS_PASSWORD", "").strip()
-    return api_key, model, access_password
+    base_url = os.getenv("KAREN_AI_BASE_URL", "https://api.openai.com/v1").strip()
+    return api_key, model, access_password, base_url
 
 
 def _access_code_required() -> bool:
@@ -77,7 +78,7 @@ def _access_code_required() -> bool:
 def _require_access(provided_code: str | None) -> None:
     if not _access_code_required():
         return
-    _, _, expected_code = _environment()
+    _, _, expected_code, _ = _environment()
     if not expected_code:
         raise HTTPException(
             status_code=503,
@@ -105,41 +106,37 @@ def _provider_error_message(exc: Exception) -> str:
     """Return actionable provider errors without exposing credentials or raw request data."""
     if isinstance(exc, AuthenticationError):
         return (
-            "OpenAI rejected the API key. Check that KAREN_AI_API_KEY contains the active "
-            "replacement key and that it belongs to the intended API project."
+            "The AI provider rejected the API key. Check KAREN_AI_API_KEY and confirm that "
+            "the key belongs to the provider selected by KAREN_AI_BASE_URL."
         )
     if isinstance(exc, PermissionDeniedError):
         return (
             "The API key or project does not have permission to use this model. Check "
-            "KAREN_AI_MODEL and the model access settings for your API project."
+            "KAREN_AI_MODEL and the model access settings for your provider account."
         )
     if isinstance(exc, NotFoundError):
         return (
-            "OpenAI could not find the configured model. Set KAREN_AI_MODEL to a model ID "
-            "listed in the OpenAI API model catalogue, such as gpt-5.6-luna if enabled "
-            "for your account."
+            "The AI provider could not find the configured model. Check KAREN_AI_MODEL "
+            "against the provider's current model catalogue."
         )
     if isinstance(exc, RateLimitError):
         code = str(getattr(exc, "code", "") or "").lower()
         if code in {"insufficient_quota", "credit_balance_exhausted"}:
             return (
-                "The OpenAI API project has no available credit or has reached a spend "
-                "limit. Check API billing, project budget, and usage limits."
+                "The AI provider account has no available credit or has reached a spend "
+                "limit. Check provider billing, project budget, and usage limits."
             )
         return (
-            "The OpenAI API rate limit was reached. Wait briefly and try again, or review "
-            "the model's request and token limits."
+            "The AI provider rate limit was reached. Wait briefly and try again, or review "
+            "the provider account's request and token limits."
         )
     if isinstance(exc, APIConnectionError):
-        return (
-            "KAREN OS could not connect to the OpenAI API. Check the Codespace network "
-            "connection and try again."
-        )
+        return "KAREN OS could not connect to the configured AI provider. Check the network."
     if isinstance(exc, APIStatusError):
         status = getattr(exc, "status_code", "unknown")
         return (
-            f"The OpenAI API returned HTTP {status}. Check the selected model, API project "
-            "permissions, and the Codespaces terminal log for details."
+            f"The AI provider returned HTTP {status}. Check the API endpoint, selected "
+            "model, key permissions, and the Codespaces terminal log."
         )
     return (
         "The AI provider request failed unexpectedly. Check the Codespaces terminal log "
@@ -170,12 +167,11 @@ async def health() -> dict[str, str]:
 
 @app.get("/api/status")
 async def status() -> dict[str, object]:
-    api_key, model, access_password = _environment()
-    protected = _access_code_required()
+    api_key, model, access_password, base_url = _environment()
     return {
         "application": "KAREN OS",
-        "ai_ready": bool(api_key and model),
-        "access_protected": protected,
+        "ai_ready": bool(api_key and model and base_url),
+        "access_protected": _access_code_required(),
     }
 
 
@@ -196,42 +192,59 @@ async def chat(
     _require_access(x_karen_access_code)
     _check_rate_limit(request)
 
-    api_key, model, _ = _environment()
+    api_key, model, _, base_url = _environment()
     if not api_key:
         raise HTTPException(
             status_code=503,
-            detail="The app owner has not configured KAREN_AI_API_KEY in the server environment.",
+            detail="Set KAREN_AI_API_KEY to a key from your chosen AI provider.",
         )
     if not model:
         raise HTTPException(
             status_code=503,
-            detail="The app owner has not configured KAREN_AI_MODEL in the server environment.",
+            detail="Set KAREN_AI_MODEL to a model ID supported by your chosen AI provider.",
+        )
+    if not base_url:
+        raise HTTPException(
+            status_code=503,
+            detail="Set KAREN_AI_BASE_URL to your chosen provider's API endpoint.",
         )
     if payload.messages[-1].role != "user":
         raise HTTPException(status_code=400, detail="The last message must be from the user.")
 
     conversation = [
-        {"role": message.role, "content": message.content}
-        for message in payload.messages
-    ]
-    client = AsyncOpenAI(api_key=api_key, timeout=60.0, max_retries=0)
-    try:
-        result = await client.responses.create(
-            model=model,
-            instructions=(
+        {
+            "role": "system",
+            "content": (
                 "You are KAREN, a practical personal AI assistant inspired by a capable "
                 "science-fiction assistant. Be helpful, concise, clear, and accurate. "
                 "Admit uncertainty. Never claim to have accessed a device, camera, file, "
                 "account, or external service unless an available tool actually performed "
                 "that action. Ask before consequential actions."
             ),
-            input=conversation,
-            max_output_tokens=900,
+        },
+        *[
+            {"role": message.role, "content": message.content}
+            for message in payload.messages
+        ],
+    ]
+
+    # Chat Completions is supported by OpenAI and the OpenAI-compatible APIs
+    # offered by Gemini, Groq, and OpenRouter.
+    client = AsyncOpenAI(
+        api_key=api_key,
+        base_url=base_url.rstrip("/") + "/",
+        timeout=60.0,
+        max_retries=0,
+    )
+    try:
+        result = await client.chat.completions.create(
+            model=model,
+            messages=conversation,
         )
-        answer = result.output_text.strip()
+        answer = result.choices[0].message.content
         if not answer:
             answer = "I couldn't produce a text response. Please try again."
-        return {"reply": answer}
+        return {"reply": answer.strip()}
     except Exception as exc:
         logger.exception("AI provider request failed (%s)", type(exc).__name__)
         raise HTTPException(status_code=502, detail=_provider_error_message(exc)) from exc
