@@ -1,6 +1,4 @@
 from types import SimpleNamespace
-
-import httpx
 from fastapi.testclient import TestClient
 
 import karenos.web.app as web_app
