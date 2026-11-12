@@ -131,3 +131,8 @@ For example, a successful result has `"ok": true` and `"stage": "ready"`. A netw
 ## Automatic handling of Gemini HTTP 503
 
 Gemini can return HTTP 503 when a model is temporarily overloaded. KAREN retries the configured model up to three times using short exponential delays (1 and 2 seconds). If it remains unavailable, KAREN tries `gemini-3.7-flash` and `gemini-3.6-flash`. You can override the fallback list with the optional comma-separated `KAREN_GEMINI_FALLBACK_MODELS` environment variable. Invalid-key, permission, and quota errors are reported separately rather than hidden by retries.
+
+
+## Read-timeout handling
+
+Codespaces logs may show `httpx.ReadTimeout` instead of an HTTP 503. KAREN now uses a 20-second read timeout and immediately tries its configured fallback models when the current model times out. Gemini HTTP 503 responses are retried once with a short delay. Default lighter fallbacks are `gemini-3.5-flash-lite` and `gemini-3.1-flash-lite`, which are listed in Google's current stable model catalogue. The chat context is limited to the last 12 messages and 2,500 characters per message to reduce latency.
