@@ -139,3 +139,5 @@ h1 span { background:linear-gradient(95deg,#e7edff 10%,#9dacf9 53%,#75dce9 100%)
 .tool-button svg { width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
 .tool-button:hover,.tool-button.active { border-color:rgba(124,231,242,.5); color:var(--cyan); background:rgba(124,231,242,.08); }
 @media(max-width:430px) { .composer-hint { display:none; } .composer-tools { gap:5px; } .tool-button { padding:7px; } }
+
+.typing-indicator[hidden] { display: none !important; }
