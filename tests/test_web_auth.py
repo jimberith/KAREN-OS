@@ -379,3 +379,86 @@ def test_gemini_falls_back_after_primary_model_503(monkeypatch):
     assert response.status_code == 200
     assert response.json()["reply"] == "Answered by gemini-3.7-flash"
     assert seen_models == ["gemini-3.8-flash"] * 3 + ["gemini-3.7-flash"]
+
+
+def test_gemini_timeout_switches_to_fast_fallback(monkeypatch):
+    monkeypatch.setenv("KAREN_REQUIRE_ACCESS_CODE", "false")
+    monkeypatch.setenv("KAREN_AI_API_KEY", "gemini-test-key")
+    monkeypatch.setenv("KAREN_AI_MODEL", "gemini-3.8-flash")
+    monkeypatch.setenv("KAREN_GEMINI_FALLBACK_MODELS", "gemini-3.5-flash-lite")
+    monkeypatch.setenv(
+        "KAREN_AI_BASE_URL",
+        "https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+    attempted_models = []
+
+    class FakeResponse:
+        status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"candidates": [{
+                "content": {"parts": [{"text": "Fallback model answered."}]}
+            }]}
+
+    class FakeAsyncClient:
+        def __init__(self, **kwargs):
+            assert kwargs["timeout"].read == 20.0
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def post(self, url, headers, json):
+            model_name = url.split("/models/")[1].split(":")[0]
+            attempted_models.append(model_name)
+            if model_name == "gemini-3.8-flash":
+                raise httpx.ReadTimeout("model response timed out")
+            return FakeResponse()
+
+    monkeypatch.setattr(web_app.httpx, "AsyncClient", FakeAsyncClient)
+    response = client.post(
+        "/api/chat",
+        json={"messages": [{"role": "user", "content": "Hello"}]},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == "Fallback model answered."
+    assert attempted_models == ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
+
+
+def test_gemini_timeout_has_actionable_error_when_all_models_time_out(monkeypatch):
+    monkeypatch.setenv("KAREN_REQUIRE_ACCESS_CODE", "false")
+    monkeypatch.setenv("KAREN_AI_API_KEY", "gemini-test-key")
+    monkeypatch.setenv("KAREN_AI_MODEL", "gemini-3.8-flash")
+    monkeypatch.setenv("KAREN_GEMINI_FALLBACK_MODELS", "gemini-3.5-flash-lite")
+    monkeypatch.setenv(
+        "KAREN_AI_BASE_URL",
+        "https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+
+    class FakeAsyncClient:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def post(self, url, headers, json):
+            raise httpx.ReadTimeout("test timeout")
+
+    monkeypatch.setattr(web_app.httpx, "AsyncClient", FakeAsyncClient)
+    response = client.post(
+        "/api/chat",
+        json={"messages": [{"role": "user", "content": "Hello"}]},
+    )
+
+    assert response.status_code == 502
+    assert "did not respond within the request timeout" in response.json()["detail"]
