@@ -172,6 +172,11 @@ def _provider_error_message(exc: Exception, base_url: str = "") -> str:
         return "KAREN OS could not connect to the configured AI provider. Check the network."
     if isinstance(exc, APIStatusError):
         return f"The AI provider returned HTTP {exc.status_code}. Check model and key permissions."
+    if isinstance(exc, httpx.TimeoutException):
+        return (
+            "Gemini did not respond within the request timeout. KAREN tried its configured "
+            "fallback models. Retry in a moment; if this continues, the provider may be overloaded."
+        )
     if isinstance(exc, httpx.RequestError):
         return "KAREN OS could not reach the Gemini API. Check the Codespaces network."
     return "The AI provider request failed. Check the Codespaces terminal for the exception type."
@@ -187,17 +192,17 @@ SYSTEM_PROMPT = (
 
 
 async def _gemini_reply(api_key: str, model: str, messages: list[ChatMessage]) -> str:
-    """Call Gemini natively, retry transient overloads, then try stable fallback models."""
+    """Call Gemini natively with bounded timeouts and fast fallback on slow/overloaded models."""
     contents = [
         {
             "role": "user" if message.role == "user" else "model",
-            "parts": [{"text": message.content}],
+            "parts": [{"text": message.content[-2500:]}],
         }
-        for message in messages
+        for message in messages[-12:]
     ]
     configured_fallbacks = os.getenv(
         "KAREN_GEMINI_FALLBACK_MODELS",
-        "gemini-3.7-flash,gemini-3.6-flash",
+        "gemini-3.5-flash-lite,gemini-3.1-flash-lite",
     )
     fallback_models = [
         item.strip()
@@ -208,34 +213,46 @@ async def _gemini_reply(api_key: str, model: str, messages: list[ChatMessage]) -
     body = {
         "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
         "contents": contents,
-        "generationConfig": {"maxOutputTokens": 900, "temperature": 0.7},
+        "generationConfig": {"maxOutputTokens": 600, "temperature": 0.7},
     }
     last_overload: httpx.Response | None = None
+    last_timeout: httpx.TimeoutException | None = None
+    timeout = httpx.Timeout(connect=8.0, read=20.0, write=12.0, pool=8.0)
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=timeout) as client:
         for candidate_model in models_to_try:
             model_path = quote(candidate_model, safe="-_.")
             url = (
                 "https://generativelanguage.googleapis.com/v1beta/"
                 f"models/{model_path}:generateContent"
             )
-            for attempt in range(3):
-                response = await client.post(
-                    url,
-                    headers={
-                        "x-goog-api-key": api_key,
-                        "Content-Type": "application/json",
-                    },
-                    json=body,
-                )
+            # One bounded request per model. A 503 is retried once; a timeout moves
+            # immediately to the next, lighter model to avoid long stalls.
+            for attempt in range(2):
+                try:
+                    response = await client.post(
+                        url,
+                        headers={
+                            "x-goog-api-key": api_key,
+                            "Content-Type": "application/json",
+                        },
+                        json=body,
+                    )
+                except httpx.TimeoutException as exc:
+                    last_timeout = exc
+                    logger.warning(
+                        "Gemini model %s timed out; trying next fallback model",
+                        candidate_model,
+                    )
+                    break
 
                 if response.status_code == 503:
                     last_overload = response
-                    if attempt < 2:
-                        await asyncio.sleep(1.0 * (2 ** attempt))
+                    if attempt == 0:
+                        await asyncio.sleep(0.8)
                         continue
                     logger.warning(
-                        "Gemini model %s remained unavailable after retries; trying fallback",
+                        "Gemini model %s remained overloaded; trying next fallback model",
                         candidate_model,
                     )
                     break
@@ -250,7 +267,7 @@ async def _gemini_reply(api_key: str, model: str, messages: list[ChatMessage]) -
                     return "Gemini returned no response. Please try a different prompt."
 
                 parts = candidates[0].get("content", {}).get("parts", [])
-                answer = "\\n".join(
+                answer = "\n".join(
                     part.get("text", "")
                     for part in parts
                     if isinstance(part.get("text"), str)
@@ -265,6 +282,8 @@ async def _gemini_reply(api_key: str, model: str, messages: list[ChatMessage]) -
             request=last_overload.request,
             response=last_overload,
         )
+    if last_timeout is not None:
+        raise last_timeout
     return "Gemini could not complete the request. Please try again."
 
 
