@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import secrets
@@ -115,6 +116,11 @@ def _provider_error_message(exc: Exception, base_url: str = "") -> str:
         except (ValueError, AttributeError):
             google_message = ""
         if provider_host == "generativelanguage.googleapis.com":
+            if status_code == 503:
+                return (
+                    "Gemini is temporarily overloaded. KAREN retried the request and tried "
+                    "its fallback models. Wait a little and try again; this is not an API-key error."
+                )
             if status_code == 401:
                 return (
                     "Gemini rejected the key. KAREN_AI_API_KEY must be a Gemini API key "
@@ -179,45 +185,87 @@ SYSTEM_PROMPT = (
 )
 
 
+
 async def _gemini_reply(api_key: str, model: str, messages: list[ChatMessage]) -> str:
-    """Call Gemini's native API using x-goog-api-key, avoiding compatibility auth issues."""
-    contents = []
-    for message in messages:
-        contents.append({
+    """Call Gemini natively, retry transient overloads, then try stable fallback models."""
+    contents = [
+        {
             "role": "user" if message.role == "user" else "model",
             "parts": [{"text": message.content}],
-        })
-
-    model_path = quote(model, safe="-_.")
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/"
-        f"models/{model_path}:generateContent"
+        }
+        for message in messages
+    ]
+    configured_fallbacks = os.getenv(
+        "KAREN_GEMINI_FALLBACK_MODELS",
+        "gemini-3.7-flash,gemini-3.6-flash",
     )
+    fallback_models = [
+        item.strip()
+        for item in configured_fallbacks.split(",")
+        if item.strip() and item.strip() != model
+    ]
+    models_to_try = [model, *fallback_models]
     body = {
         "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
         "contents": contents,
         "generationConfig": {"maxOutputTokens": 900, "temperature": 0.7},
     }
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        response = await client.post(
-            url,
-            headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
-            json=body,
-        )
-        response.raise_for_status()
-        data = response.json()
+    last_overload: httpx.Response | None = None
 
-    candidates = data.get("candidates", [])
-    if not candidates:
-        feedback = data.get("promptFeedback", {}).get("blockReason", "")
-        if feedback:
-            return f"Gemini blocked this prompt for safety reasons ({feedback})."
-        return "Gemini returned no response. Please try a different prompt."
-    parts = candidates[0].get("content", {}).get("parts", [])
-    answer = "\n".join(
-        part.get("text", "") for part in parts if isinstance(part.get("text"), str)
-    ).strip()
-    return answer or "Gemini returned no text response. Please try again."
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        for candidate_model in models_to_try:
+            model_path = quote(candidate_model, safe="-_.")
+            url = (
+                "https://generativelanguage.googleapis.com/v1beta/"
+                f"models/{model_path}:generateContent"
+            )
+            for attempt in range(3):
+                response = await client.post(
+                    url,
+                    headers={
+                        "x-goog-api-key": api_key,
+                        "Content-Type": "application/json",
+                    },
+                    json=body,
+                )
+
+                if response.status_code == 503:
+                    last_overload = response
+                    if attempt < 2:
+                        await asyncio.sleep(1.0 * (2 ** attempt))
+                        continue
+                    logger.warning(
+                        "Gemini model %s remained unavailable after retries; trying fallback",
+                        candidate_model,
+                    )
+                    break
+
+                response.raise_for_status()
+                data = response.json()
+                candidates = data.get("candidates", [])
+                if not candidates:
+                    feedback = data.get("promptFeedback", {}).get("blockReason", "")
+                    if feedback:
+                        return f"Gemini blocked this prompt for safety reasons ({feedback})."
+                    return "Gemini returned no response. Please try a different prompt."
+
+                parts = candidates[0].get("content", {}).get("parts", [])
+                answer = "\\n".join(
+                    part.get("text", "")
+                    for part in parts
+                    if isinstance(part.get("text"), str)
+                ).strip()
+                if candidate_model != model:
+                    logger.info("Gemini fallback model %s handled the request", candidate_model)
+                return answer or "Gemini returned no text response. Please try again."
+
+    if last_overload is not None:
+        raise httpx.HTTPStatusError(
+            "Gemini remained unavailable after retrying configured fallback models.",
+            request=last_overload.request,
+            response=last_overload,
+        )
+    return "Gemini could not complete the request. Please try again."
 
 
 async def _compatible_reply(
