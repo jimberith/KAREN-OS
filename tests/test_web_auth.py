@@ -305,7 +305,7 @@ def test_gemini_retries_503_then_succeeds(monkeypatch):
 
         async def post(self, url, headers, json):
             captured["attempts"] += 1
-            return FakeResponse(503 if captured["attempts"] < 3 else 200)
+            return FakeResponse(503 if captured["attempts"] < 2 else 200)
 
     async def no_wait(_seconds):
         return None
