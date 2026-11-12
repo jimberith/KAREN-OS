@@ -183,3 +183,79 @@ def test_chat_rejects_when_last_message_is_not_user(monkeypatch):
         json={"messages": [{"role": "assistant", "content": "Hello"}]},
     )
     assert response.status_code == 400
+
+
+
+def test_gemini_diagnostics_accepts_model_and_key(monkeypatch):
+    monkeypatch.setenv("KAREN_AI_API_KEY", "gemini-test-key")
+    monkeypatch.setenv("KAREN_AI_MODEL", "gemini-3.8-flash")
+    monkeypatch.setenv(
+        "KAREN_AI_BASE_URL",
+        "https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+
+    class FakeResponse:
+        is_success = True
+
+        def json(self):
+            return {"name": "models/gemini-3.8-flash"}
+
+    class FakeAsyncClient:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def get(self, url, headers):
+            assert url.endswith("/v1beta/models/gemini-3.8-flash")
+            assert headers["x-goog-api-key"] == "gemini-test-key"
+            return FakeResponse()
+
+    monkeypatch.setattr(web_app.httpx, "AsyncClient", FakeAsyncClient)
+    response = client.get("/api/diagnostics")
+
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    assert response.json()["stage"] == "ready"
+    assert "gemini-test-key" not in response.text
+
+
+def test_gemini_diagnostics_reports_auth_failure(monkeypatch):
+    monkeypatch.setenv("KAREN_AI_API_KEY", "bad-test-key")
+    monkeypatch.setenv("KAREN_AI_MODEL", "gemini-3.8-flash")
+    monkeypatch.setenv(
+        "KAREN_AI_BASE_URL",
+        "https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+
+    class FakeResponse:
+        is_success = False
+        status_code = 400
+
+        def json(self):
+            return {"error": {"message": "API key not valid", "status": "INVALID_ARGUMENT"}}
+
+    class FakeAsyncClient:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def get(self, url, headers):
+            return FakeResponse()
+
+    monkeypatch.setattr(web_app.httpx, "AsyncClient", FakeAsyncClient)
+    response = client.get("/api/diagnostics")
+
+    assert response.status_code == 200
+    assert response.json()["stage"] == "authentication"
+    assert response.json()["http_status"] == 400
+    assert "bad-test-key" not in response.text
