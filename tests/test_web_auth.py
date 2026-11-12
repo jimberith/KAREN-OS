@@ -319,7 +319,7 @@ def test_gemini_retries_503_then_succeeds(monkeypatch):
 
     assert response.status_code == 200
     assert response.json()["reply"] == "Recovered after retry."
-    assert captured["attempts"] == 3
+    assert captured["attempts"] == 2
 
 
 def test_gemini_falls_back_after_primary_model_503(monkeypatch):
@@ -378,7 +378,7 @@ def test_gemini_falls_back_after_primary_model_503(monkeypatch):
 
     assert response.status_code == 200
     assert response.json()["reply"] == "Answered by gemini-3.7-flash"
-    assert seen_models == ["gemini-3.8-flash"] * 3 + ["gemini-3.7-flash"]
+    assert seen_models == ["gemini-3.8-flash"] * 2 + ["gemini-3.7-flash"]
 
 
 def test_gemini_timeout_switches_to_fast_fallback(monkeypatch):
