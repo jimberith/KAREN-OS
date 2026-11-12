@@ -9,8 +9,9 @@ import time
 from collections import defaultdict, deque
 from pathlib import Path
 from typing import Literal
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
+import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -33,7 +34,7 @@ STATIC_DIR = Path(__file__).parent / "static"
 app = FastAPI(
     title="KAREN OS",
     description="Browser interface for the KAREN OS personal assistant.",
-    version="0.3.1",
+    version="0.3.2",
     docs_url=None,
     redoc_url=None,
 )
@@ -106,60 +107,134 @@ def _check_rate_limit(request: Request) -> None:
 def _provider_error_message(exc: Exception, base_url: str = "") -> str:
     """Return actionable provider errors without exposing credentials or raw request data."""
     provider_host = (urlsplit(base_url).hostname or "").lower()
+    if isinstance(exc, httpx.HTTPStatusError):
+        status_code = exc.response.status_code
+        try:
+            body = exc.response.json()
+            google_message = body.get("error", {}).get("message", "")
+        except (ValueError, AttributeError):
+            google_message = ""
+        if provider_host == "generativelanguage.googleapis.com":
+            if status_code == 401:
+                return (
+                    "Gemini rejected the key. KAREN_AI_API_KEY must be a Gemini API key "
+                    "created in Google AI Studio, not an OpenAI key. Re-copy the complete "
+                    "key into GitHub Codespaces Secrets and restart the Codespace."
+                )
+            if status_code == 403:
+                return (
+                    "Gemini denied access to this project or API key. Check that the "
+                    "Generative Language API is enabled and the key is permitted to use it."
+                )
+            if status_code == 404:
+                return (
+                    "Gemini could not find this model. Check KAREN_AI_MODEL in the current "
+                    "Google AI Studio model list."
+                )
+            if status_code == 429:
+                return (
+                    "Gemini quota or rate limit reached. Check Google AI Studio usage and "
+                    "wait for the quota window to reset."
+                )
+            if status_code >= 500:
+                return (
+                    f"Gemini returned HTTP {status_code}. This may be temporary; wait briefly "
+                    "and retry."
+                )
+        return f"The AI provider returned HTTP {status_code}. {google_message[:240]}"
     if isinstance(exc, AuthenticationError):
         if provider_host == "generativelanguage.googleapis.com":
             return (
-                "Gemini rejected the API key. Replace KAREN_AI_API_KEY with a Gemini API "
-                "key created in Google AI Studio. Do not use your OpenAI key here. Keep "
-                "KAREN_AI_BASE_URL set to https://generativelanguage.googleapis.com/v1beta/openai/."
+                "Gemini rejected the API key. Use a Gemini key from Google AI Studio, "
+                "not an OpenAI key."
             )
         if provider_host == "api.groq.com":
-            return (
-                "Groq rejected the API key. Replace KAREN_AI_API_KEY with a key created "
-                "in the Groq Console, not an OpenAI or Gemini key."
-            )
+            return "Groq rejected the key. Use a key created in the Groq Console."
         if provider_host == "openrouter.ai":
-            return (
-                "OpenRouter rejected the API key. Replace KAREN_AI_API_KEY with a key "
-                "created in OpenRouter, not an OpenAI or Gemini key."
-            )
-        return (
-            "The AI provider rejected the API key. Check KAREN_AI_API_KEY and confirm that "
-            "the key belongs to the provider selected by KAREN_AI_BASE_URL."
-        )
+            return "OpenRouter rejected the key. Use a key created in OpenRouter."
+        return "The AI provider rejected the API key. Check that the key matches the provider."
     if isinstance(exc, PermissionDeniedError):
-        return (
-            "The API key or project does not have permission to use this model. Check "
-            "KAREN_AI_MODEL and the model access settings for your provider account."
-        )
+        return "The API key or project does not have permission to use this model."
     if isinstance(exc, NotFoundError):
-        return (
-            "The AI provider could not find the configured model. Check KAREN_AI_MODEL "
-            "against the provider's current model catalogue."
-        )
+        return "The AI provider could not find the configured model. Check KAREN_AI_MODEL."
     if isinstance(exc, RateLimitError):
         code = str(getattr(exc, "code", "") or "").lower()
         if code in {"insufficient_quota", "credit_balance_exhausted"}:
-            return (
-                "The AI provider account has no available credit or has reached a spend "
-                "limit. Check provider billing, project budget, and usage limits."
-            )
-        return (
-            "The AI provider rate limit was reached. Wait briefly and try again, or review "
-            "the provider account's request and token limits."
-        )
+            return "The AI provider account has no available credit or has reached its spend limit."
+        return "The AI provider rate limit was reached. Wait briefly and try again."
     if isinstance(exc, APIConnectionError):
         return "KAREN OS could not connect to the configured AI provider. Check the network."
     if isinstance(exc, APIStatusError):
-        status = getattr(exc, "status_code", "unknown")
-        return (
-            f"The AI provider returned HTTP {status}. Check the API endpoint, selected "
-            "model, key permissions, and the Codespaces terminal log."
-        )
-    return (
-        "The AI provider request failed unexpectedly. Check the Codespaces terminal log "
-        "for the exception type and try again."
+        return f"The AI provider returned HTTP {exc.status_code}. Check model and key permissions."
+    if isinstance(exc, httpx.RequestError):
+        return "KAREN OS could not reach the Gemini API. Check the Codespaces network."
+    return "The AI provider request failed. Check the Codespaces terminal for the exception type."
+
+
+SYSTEM_PROMPT = (
+    "You are KAREN, a practical personal AI assistant inspired by a capable science-fiction "
+    "assistant. Be helpful, concise, clear, and accurate. Admit uncertainty. Never claim to "
+    "have accessed a device, camera, file, account, or external service unless an available "
+    "tool actually performed that action. Ask before consequential actions."
+)
+
+
+async def _gemini_reply(api_key: str, model: str, messages: list[ChatMessage]) -> str:
+    """Call Gemini's native API using x-goog-api-key, avoiding compatibility auth issues."""
+    contents = []
+    for message in messages:
+        contents.append({
+            "role": "user" if message.role == "user" else "model",
+            "parts": [{"text": message.content}],
+        })
+
+    model_path = quote(model, safe="-_.")
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/"
+        f"models/{model_path}:generateContent"
     )
+    body = {
+        "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+        "contents": contents,
+        "generationConfig": {"maxOutputTokens": 900, "temperature": 0.7},
+    }
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.post(
+            url,
+            headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
+            json=body,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+    candidates = data.get("candidates", [])
+    if not candidates:
+        feedback = data.get("promptFeedback", {}).get("blockReason", "")
+        if feedback:
+            return f"Gemini blocked this prompt for safety reasons ({feedback})."
+        return "Gemini returned no response. Please try a different prompt."
+    parts = candidates[0].get("content", {}).get("parts", [])
+    answer = "\n".join(
+        part.get("text", "") for part in parts if isinstance(part.get("text"), str)
+    ).strip()
+    return answer or "Gemini returned no text response. Please try again."
+
+
+async def _compatible_reply(
+    api_key: str, model: str, base_url: str, messages: list[dict[str, str]]
+) -> str:
+    client = AsyncOpenAI(
+        api_key=api_key,
+        base_url=base_url.rstrip("/") + "/",
+        timeout=60.0,
+        max_retries=0,
+    )
+    try:
+        result = await client.chat.completions.create(model=model, messages=messages)
+        answer = result.choices[0].message.content
+        return answer.strip() if answer else "The AI provider returned an empty response."
+    finally:
+        await client.close()
 
 
 @app.middleware("http")
@@ -185,12 +260,20 @@ async def health() -> dict[str, str]:
 
 @app.get("/api/status")
 async def status() -> dict[str, object]:
-    api_key, model, access_password, base_url = _environment()
+    api_key, model, _, base_url = _environment()
+    provider_host = urlsplit(base_url).hostname or "not-configured"
+    provider_name = {
+        "generativelanguage.googleapis.com": "Gemini",
+        "api.groq.com": "Groq",
+        "openrouter.ai": "OpenRouter",
+        "api.openai.com": "OpenAI",
+    }.get(provider_host, provider_host)
     return {
         "application": "KAREN OS",
         "ai_ready": bool(api_key and model and base_url),
         "api_key_configured": bool(api_key),
-        "provider_host": urlsplit(base_url).hostname or "not-configured",
+        "provider_host": provider_host,
+        "provider_name": provider_name,
         "model": model or "not-configured",
         "access_protected": _access_code_required(),
     }
@@ -232,42 +315,18 @@ async def chat(
     if payload.messages[-1].role != "user":
         raise HTTPException(status_code=400, detail="The last message must be from the user.")
 
-    conversation = [
-        {
-            "role": "system",
-            "content": (
-                "You are KAREN, a practical personal AI assistant inspired by a capable "
-                "science-fiction assistant. Be helpful, concise, clear, and accurate. "
-                "Admit uncertainty. Never claim to have accessed a device, camera, file, "
-                "account, or external service unless an available tool actually performed "
-                "that action. Ask before consequential actions."
-            ),
-        },
-        *[
-            {"role": message.role, "content": message.content}
-            for message in payload.messages
-        ],
+    provider_host = (urlsplit(base_url).hostname or "").lower()
+    compatible_messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        *[{"role": message.role, "content": message.content} for message in payload.messages],
     ]
 
-    # Chat Completions is supported by OpenAI and the OpenAI-compatible APIs
-    # offered by Gemini, Groq, and OpenRouter.
-    client = AsyncOpenAI(
-        api_key=api_key,
-        base_url=base_url.rstrip("/") + "/",
-        timeout=60.0,
-        max_retries=0,
-    )
     try:
-        result = await client.chat.completions.create(
-            model=model,
-            messages=conversation,
-        )
-        answer = result.choices[0].message.content
-        if not answer:
-            answer = "I couldn't produce a text response. Please try again."
-        return {"reply": answer.strip()}
+        if provider_host == "generativelanguage.googleapis.com":
+            answer = await _gemini_reply(api_key, model, payload.messages)
+        else:
+            answer = await _compatible_reply(api_key, model, base_url, compatible_messages)
+        return {"reply": answer}
     except Exception as exc:
         logger.exception("AI provider request failed (%s)", type(exc).__name__)
         raise HTTPException(status_code=502, detail=_provider_error_message(exc, base_url)) from exc
-    finally:
-        await client.close()
