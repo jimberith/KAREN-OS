@@ -119,3 +119,10 @@ Configure:
 The server sends the actual request to `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`.
 
 If the key is rejected with HTTP 401, ensure `KAREN_AI_API_KEY` contains the full Gemini key, not an OpenAI key. Re-copy it from https://aistudio.google.com/apikey and update the Codespaces secret. Never paste the key into a chat or source file.
+
+
+## Fast Gemini diagnostic
+
+With the web server running in Codespaces, open the same forwarded KAREN URL and append `/api/diagnostics`. This endpoint calls Google's `GET /v1beta/models/{model}` endpoint using the server-side Gemini key. It does not generate model output. It reports whether the problem is missing configuration, DNS/network access, API-key authentication, project permission, model availability, or quota. It never returns the API key.
+
+For example, a successful result has `"ok": true` and `"stage": "ready"`. A network failure returns `"stage": "network"` or `"dns"`; an invalid key returns `"stage": "authentication"`.
