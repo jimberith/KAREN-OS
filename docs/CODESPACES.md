@@ -104,3 +104,18 @@ A Codespace is for development and testing. It can stop when idle. For public ho
 - The API key remains on the backend and is never sent to browser JavaScript.
 - The browser sends conversation messages to the configured AI provider when you submit them.
 - Chat history is held in the current browser page session; refreshing the page clears it.
+
+
+## Gemini native API mode
+
+For Google Gemini, the current KAREN backend uses the native `generateContent` REST endpoint with the `x-goog-api-key` header. This avoids reliance on the OpenAI compatibility authentication path.
+
+Configure:
+
+- `KAREN_AI_API_KEY`: Gemini API key from Google AI Studio.
+- `KAREN_AI_BASE_URL`: `https://generativelanguage.googleapis.com/v1beta/openai/` (used to select Gemini provider mode).
+- `KAREN_AI_MODEL`: `gemini-3.8-flash`.
+
+The server sends the actual request to `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`.
+
+If the key is rejected with HTTP 401, ensure `KAREN_AI_API_KEY` contains the full Gemini key, not an OpenAI key. Re-copy it from https://aistudio.google.com/apikey and update the Codespaces secret. Never paste the key into a chat or source file.
