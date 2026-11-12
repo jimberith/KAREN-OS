@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+import httpx
 from fastapi.testclient import TestClient
 
 import karenos.web.app as web_app
@@ -88,11 +89,8 @@ def test_chat_rejects_when_api_key_missing(monkeypatch):
 def test_chat_uses_configured_openai_compatible_provider(monkeypatch):
     monkeypatch.setenv("KAREN_REQUIRE_ACCESS_CODE", "false")
     monkeypatch.setenv("KAREN_AI_API_KEY", "provider-test-key")
-    monkeypatch.setenv("KAREN_AI_MODEL", "gemini-example")
-    monkeypatch.setenv(
-        "KAREN_AI_BASE_URL",
-        "https://generativelanguage.googleapis.com/v1beta/openai/",
-    )
+    monkeypatch.setenv("KAREN_AI_MODEL", "openai-test-model")
+    monkeypatch.setenv("KAREN_AI_BASE_URL", "https://api.groq.com/openai/v1")
     captured = {}
 
     class FakeCompletions:
@@ -119,20 +117,68 @@ def test_chat_uses_configured_openai_compatible_provider(monkeypatch):
     assert response.status_code == 200
     assert response.json()["reply"] == "Hello from test."
     assert captured["client"]["api_key"] == "provider-test-key"
-    assert captured["client"]["base_url"] == (
-        "https://generativelanguage.googleapis.com/v1beta/openai/"
-    )
-    assert captured["request"]["model"] == "gemini-example"
+    assert captured["client"]["base_url"] == "https://api.groq.com/openai/v1/"
+    assert captured["request"]["model"] == "openai-test-model"
     assert captured["request"]["messages"][-1] == {
         "role": "user",
         "content": "Hello KAREN",
     }
 
 
+def test_gemini_uses_native_api_key_header(monkeypatch):
+    monkeypatch.setenv("KAREN_REQUIRE_ACCESS_CODE", "false")
+    monkeypatch.setenv("KAREN_AI_API_KEY", "gemini-test-key")
+    monkeypatch.setenv("KAREN_AI_MODEL", "gemini-3.8-flash")
+    monkeypatch.setenv(
+        "KAREN_AI_BASE_URL",
+        "https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                "candidates": [{
+                    "content": {"parts": [{"text": "Hello from native Gemini."}]}
+                }]
+            }
+
+    class FakeAsyncClient:
+        def __init__(self, **kwargs):
+            captured["timeout"] = kwargs.get("timeout")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def post(self, url, headers, json):
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["body"] = json
+            return FakeResponse()
+
+    monkeypatch.setattr(web_app.httpx, "AsyncClient", FakeAsyncClient)
+    response = client.post(
+        "/api/chat",
+        json={"messages": [{"role": "user", "content": "Hello KAREN"}]},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == "Hello from native Gemini."
+    assert captured["headers"]["x-goog-api-key"] == "gemini-test-key"
+    assert captured["url"].endswith("/models/gemini-3.8-flash:generateContent")
+    assert captured["body"]["contents"][0]["role"] == "user"
+
+
 def test_chat_rejects_when_last_message_is_not_user(monkeypatch):
     monkeypatch.setenv("KAREN_REQUIRE_ACCESS_CODE", "false")
     monkeypatch.setenv("KAREN_AI_API_KEY", "provider-test-key")
-    monkeypatch.setenv("KAREN_AI_MODEL", "gemini-example")
+    monkeypatch.setenv("KAREN_AI_MODEL", "test-model")
     monkeypatch.setenv("KAREN_AI_BASE_URL", "https://test.invalid/v1")
     response = client.post(
         "/api/chat",
