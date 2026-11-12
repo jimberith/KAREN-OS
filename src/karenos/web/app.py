@@ -9,6 +9,7 @@ import time
 from collections import defaultdict, deque
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
@@ -102,9 +103,26 @@ def _check_rate_limit(request: Request) -> None:
     timestamps.append(now)
 
 
-def _provider_error_message(exc: Exception) -> str:
+def _provider_error_message(exc: Exception, base_url: str = "") -> str:
     """Return actionable provider errors without exposing credentials or raw request data."""
+    provider_host = (urlsplit(base_url).hostname or "").lower()
     if isinstance(exc, AuthenticationError):
+        if provider_host == "generativelanguage.googleapis.com":
+            return (
+                "Gemini rejected the API key. Replace KAREN_AI_API_KEY with a Gemini API "
+                "key created in Google AI Studio. Do not use your OpenAI key here. Keep "
+                "KAREN_AI_BASE_URL set to https://generativelanguage.googleapis.com/v1beta/openai/."
+            )
+        if provider_host == "api.groq.com":
+            return (
+                "Groq rejected the API key. Replace KAREN_AI_API_KEY with a key created "
+                "in the Groq Console, not an OpenAI or Gemini key."
+            )
+        if provider_host == "openrouter.ai":
+            return (
+                "OpenRouter rejected the API key. Replace KAREN_AI_API_KEY with a key "
+                "created in OpenRouter, not an OpenAI or Gemini key."
+            )
         return (
             "The AI provider rejected the API key. Check KAREN_AI_API_KEY and confirm that "
             "the key belongs to the provider selected by KAREN_AI_BASE_URL."
@@ -171,6 +189,9 @@ async def status() -> dict[str, object]:
     return {
         "application": "KAREN OS",
         "ai_ready": bool(api_key and model and base_url),
+        "api_key_configured": bool(api_key),
+        "provider_host": urlsplit(base_url).hostname or "not-configured",
+        "model": model or "not-configured",
         "access_protected": _access_code_required(),
     }
 
@@ -247,6 +268,6 @@ async def chat(
         return {"reply": answer.strip()}
     except Exception as exc:
         logger.exception("AI provider request failed (%s)", type(exc).__name__)
-        raise HTTPException(status_code=502, detail=_provider_error_message(exc)) from exc
+        raise HTTPException(status_code=502, detail=_provider_error_message(exc, base_url)) from exc
     finally:
         await client.close()
