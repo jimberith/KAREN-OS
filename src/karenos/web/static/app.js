@@ -84,8 +84,9 @@ async function initialize() {
     const response = await fetch("/api/status");
     const payload = await response.json();
     if (!response.ok) throw new Error("The KAREN OS server is unavailable.");
+    const providerLabel = String(payload.provider_host || "provider").replace(/^generativelanguage\.googleapis\.com$/, "GEMINI").replace(/^api\.groq\.com$/, "GROQ").replace(/^openrouter\.ai$/, "OPENROUTER").replace(/^api\.openai\.com$/, "OPENAI");
     setStatus(
-      payload.ai_ready ? "AI SYSTEM READY" : "AI SETUP REQUIRED",
+      payload.ai_ready ? providerLabel + " CONFIGURED" : "AI SETUP REQUIRED",
       payload.ai_ready ? "ready" : "error"
     );
 
