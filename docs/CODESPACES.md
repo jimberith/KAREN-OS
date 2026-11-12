@@ -126,3 +126,8 @@ If the key is rejected with HTTP 401, ensure `KAREN_AI_API_KEY` contains the ful
 With the web server running in Codespaces, open the same forwarded KAREN URL and append `/api/diagnostics`. This endpoint calls Google's `GET /v1beta/models/{model}` endpoint using the server-side Gemini key. It does not generate model output. It reports whether the problem is missing configuration, DNS/network access, API-key authentication, project permission, model availability, or quota. It never returns the API key.
 
 For example, a successful result has `"ok": true` and `"stage": "ready"`. A network failure returns `"stage": "network"` or `"dns"`; an invalid key returns `"stage": "authentication"`.
+
+
+## Automatic handling of Gemini HTTP 503
+
+Gemini can return HTTP 503 when a model is temporarily overloaded. KAREN retries the configured model up to three times using short exponential delays (1 and 2 seconds). If it remains unavailable, KAREN tries `gemini-3.7-flash` and `gemini-3.6-flash`. You can override the fallback list with the optional comma-separated `KAREN_GEMINI_FALLBACK_MODELS` environment variable. Invalid-key, permission, and quota errors are reported separately rather than hidden by retries.
