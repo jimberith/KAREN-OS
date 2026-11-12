@@ -53,6 +53,18 @@ Groq's exact request/token limits depend on the model and account; see https://c
 
 After changing secrets, stop and restart the Codespace so the environment receives the updates.
 
+### Important: match the API key to the provider
+
+For Gemini, all three settings must be Gemini values:
+
+- `KAREN_AI_API_KEY`: a Gemini API key copied from Google AI Studio.
+- `KAREN_AI_BASE_URL`: `https://generativelanguage.googleapis.com/v1beta/openai/`.
+- `KAREN_AI_MODEL`: `gemini-3.8-flash`.
+
+An OpenAI key will not authenticate against the Gemini endpoint. A Gemini key will not authenticate against the OpenAI endpoint. Create/copy the Gemini key from https://aistudio.google.com/apikey, replace the existing `KAREN_AI_API_KEY` secret with it, and restart Codespaces. Newly created AI Studio keys are Auth keys; follow Google's key migration instructions if using an older key: https://ai.google.dev/gemini-api/docs/api-key.
+
+To check the non-secret provider settings currently loaded by your Codespace, open the KAREN OS website and visit `/api/status` at the end of its URL. It shows only the provider hostname, model name, and whether a key is configured. It never displays the key itself.
+
 ## 4. Start the browser application
 
 Open **Terminal → New Terminal**, then run:
