@@ -1,4 +1,6 @@
 from types import SimpleNamespace
+
+import httpx
 from fastapi.testclient import TestClient
 
 import karenos.web.app as web_app
@@ -134,6 +136,8 @@ def test_gemini_uses_native_api_key_header(monkeypatch):
     captured = {}
 
     class FakeResponse:
+        status_code = 200
+
         def raise_for_status(self):
             return None
 
@@ -259,3 +263,119 @@ def test_gemini_diagnostics_reports_auth_failure(monkeypatch):
     assert response.json()["stage"] == "authentication"
     assert response.json()["http_status"] == 400
     assert "bad-test-key" not in response.text
+
+
+def test_gemini_retries_503_then_succeeds(monkeypatch):
+    monkeypatch.setenv("KAREN_REQUIRE_ACCESS_CODE", "false")
+    monkeypatch.setenv("KAREN_AI_API_KEY", "gemini-test-key")
+    monkeypatch.setenv("KAREN_AI_MODEL", "gemini-3.8-flash")
+    monkeypatch.setenv("KAREN_GEMINI_FALLBACK_MODELS", "")
+    monkeypatch.setenv(
+        "KAREN_AI_BASE_URL",
+        "https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+    captured = {"attempts": 0}
+
+    class FakeResponse:
+        def __init__(self, status_code):
+            self.status_code = status_code
+            self.request = httpx.Request("POST", "https://example.test")
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise httpx.HTTPStatusError(
+                    "temporary overload", request=self.request,
+                    response=httpx.Response(self.status_code, request=self.request),
+                )
+
+        def json(self):
+            return {"candidates": [{
+                "content": {"parts": [{"text": "Recovered after retry."}]}
+            }]}
+
+    class FakeAsyncClient:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def post(self, url, headers, json):
+            captured["attempts"] += 1
+            return FakeResponse(503 if captured["attempts"] < 3 else 200)
+
+    async def no_wait(_seconds):
+        return None
+
+    monkeypatch.setattr(web_app.httpx, "AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(web_app.asyncio, "sleep", no_wait)
+    response = client.post(
+        "/api/chat",
+        json={"messages": [{"role": "user", "content": "Hello"}]},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == "Recovered after retry."
+    assert captured["attempts"] == 3
+
+
+def test_gemini_falls_back_after_primary_model_503(monkeypatch):
+    monkeypatch.setenv("KAREN_REQUIRE_ACCESS_CODE", "false")
+    monkeypatch.setenv("KAREN_AI_API_KEY", "gemini-test-key")
+    monkeypatch.setenv("KAREN_AI_MODEL", "gemini-3.8-flash")
+    monkeypatch.setenv("KAREN_GEMINI_FALLBACK_MODELS", "gemini-3.7-flash")
+    monkeypatch.setenv(
+        "KAREN_AI_BASE_URL",
+        "https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+    seen_models = []
+
+    class FakeResponse:
+        def __init__(self, status_code, model_name):
+            self.status_code = status_code
+            self.model_name = model_name
+            self.request = httpx.Request("POST", "https://example.test")
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise httpx.HTTPStatusError(
+                    "temporary overload", request=self.request,
+                    response=httpx.Response(self.status_code, request=self.request),
+                )
+
+        def json(self):
+            return {"candidates": [{
+                "content": {"parts": [{"text": f"Answered by {self.model_name}"}]}
+            }]}
+
+    class FakeAsyncClient:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def post(self, url, headers, json):
+            model_name = url.split("/models/")[1].split(":")[0]
+            seen_models.append(model_name)
+            return FakeResponse(503 if model_name == "gemini-3.8-flash" else 200, model_name)
+
+    async def no_wait(_seconds):
+        return None
+
+    monkeypatch.setattr(web_app.httpx, "AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(web_app.asyncio, "sleep", no_wait)
+    response = client.post(
+        "/api/chat",
+        json={"messages": [{"role": "user", "content": "Hello"}]},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == "Answered by gemini-3.7-flash"
+    assert seen_models == ["gemini-3.8-flash"] * 3 + ["gemini-3.7-flash"]
