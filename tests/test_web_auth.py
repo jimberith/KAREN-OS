@@ -1,6 +1,5 @@
 from types import SimpleNamespace
 
-import pytest
 from fastapi.testclient import TestClient
 
 import karenos.web.app as web_app
@@ -26,6 +25,9 @@ def test_status_does_not_expose_credentials(monkeypatch):
     assert response.status_code == 200
     assert response.json()["ai_ready"] is True
     assert response.json()["access_protected"] is True
+    assert response.json()["provider_host"] == "test.invalid"
+    assert response.json()["model"] == "test-model"
+    assert response.json()["api_key_configured"] is True
     assert "test-secret-value" not in response.text
     assert "test-access-code" not in response.text
 
