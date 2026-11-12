@@ -279,6 +279,130 @@ async def status() -> dict[str, object]:
     }
 
 
+
+
+@app.get("/api/diagnostics")
+async def diagnostics() -> dict[str, object]:
+    """Check provider reachability, API key authentication, and model availability."""
+    api_key, model, _, base_url = _environment()
+    provider_host = (urlsplit(base_url).hostname or "").lower()
+
+    if not api_key:
+        return {
+            "ok": False,
+            "stage": "configuration",
+            "message": "KAREN_AI_API_KEY is missing.",
+        }
+    if not model:
+        return {
+            "ok": False,
+            "stage": "configuration",
+            "message": "KAREN_AI_MODEL is missing.",
+        }
+
+    if provider_host == "generativelanguage.googleapis.com":
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{quote(model, safe='-_.')}"
+        )
+        headers = {"x-goog-api-key": api_key}
+    else:
+        return {
+            "ok": False,
+            "stage": "provider",
+            "provider_host": provider_host or "not-configured",
+            "message": (
+                "This diagnostic endpoint currently checks Gemini native API credentials. "
+                "For another provider, use its own model-list or account diagnostic."
+            ),
+        }
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(url, headers=headers)
+    except httpx.ConnectTimeout:
+        return {
+            "ok": False,
+            "stage": "network",
+            "provider_host": provider_host,
+            "message": "Connection to Google timed out. Retry or test the endpoint from the Codespaces terminal.",
+        }
+    except httpx.ReadTimeout:
+        return {
+            "ok": False,
+            "stage": "network",
+            "provider_host": provider_host,
+            "message": "Google did not respond before the diagnostic timeout.",
+        }
+    except httpx.ConnectError as exc:
+        cause = str(exc.__cause__ or exc)
+        dns_problem = "name or service not known" in cause.lower() or "temporary failure in name resolution" in cause.lower() or "getaddrinfo" in cause.lower()
+        return {
+            "ok": False,
+            "stage": "dns" if dns_problem else "network",
+            "provider_host": provider_host,
+            "error_type": type(exc).__name__,
+            "message": (
+                "The Codespace could not resolve Google's API hostname. Check DNS/network access."
+                if dns_problem
+                else "The Codespace could not establish a TLS or TCP connection to Google's API."
+            ),
+        }
+    except httpx.RequestError as exc:
+        return {
+            "ok": False,
+            "stage": "network",
+            "provider_host": provider_host,
+            "error_type": type(exc).__name__,
+            "message": "The request could not reach Google's API. Check the Codespaces network.",
+        }
+
+    if response.is_success:
+        data = response.json()
+        return {
+            "ok": True,
+            "stage": "ready",
+            "provider": "Gemini",
+            "provider_host": provider_host,
+            "model": data.get("name", f"models/{model}"),
+            "message": "Google accepted the API key and the selected model is available.",
+        }
+
+    try:
+        error_data = response.json().get("error", {})
+        provider_message = str(error_data.get("message", "No error message supplied"))[:300]
+        provider_status = error_data.get("status", "")
+    except (ValueError, AttributeError):
+        provider_message = "Google returned a non-JSON error response."
+        provider_status = ""
+
+    status_code = response.status_code
+    if status_code in {400, 401}:
+        hint = "Google rejected the API key. Re-copy a Gemini API key from Google AI Studio."
+        stage = "authentication"
+    elif status_code == 403:
+        hint = "The key was received, but this Google project or key lacks API permission."
+        stage = "permission"
+    elif status_code == 404:
+        hint = "The model was not found. Check KAREN_AI_MODEL against Google's current model list."
+        stage = "model"
+    elif status_code == 429:
+        hint = "Gemini quota or rate limit reached. Check Google AI Studio usage and billing."
+        stage = "quota"
+    else:
+        hint = f"Google returned HTTP {status_code}. Check the provider response below."
+        stage = "provider"
+
+    return {
+        "ok": False,
+        "stage": stage,
+        "http_status": status_code,
+        "provider_status": provider_status,
+        "provider_message": provider_message,
+        "hint": hint,
+    }
+
+
 @app.post("/api/auth/check")
 async def check_access(
     x_karen_access_code: str | None = Header(default=None),
