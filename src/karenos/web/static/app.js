@@ -574,9 +574,28 @@ document.getElementById("voice-output").addEventListener("click", () => {
   notify(speakReplies ? "Spoken replies enabled." : "Spoken replies disabled.");
 });
 
-function speak(text) {
-  if (!speakReplies || !("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
+async function speak(text) {
+  if (!speakReplies || !text) return;
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+
+  // Prefer natural server-generated Gemini speech; fall back to the browser voice.
+  try {
+    const result = await api("/api/voice/speak", {
+      method: "POST",
+      body: JSON.stringify({ text })
+    });
+    const audio = new Audio(result.audio_url);
+    audio.preload = "auto";
+    await audio.play();
+    return;
+  } catch (error) {
+    console.info("Gemini TTS unavailable; using browser speech:", error.message);
+  }
+
+  if (!("speechSynthesis" in window)) {
+    notify("Speech output is unavailable in this browser.");
+    return;
+  }
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = 1.02;
   utterance.pitch = 1.0;
