@@ -89,3 +89,27 @@ def test_web_search_returns_source_links_without_ai_key(monkeypatch):
     )
     assert response.status_code == 200
     assert response.json()["sources"][0]["url"] == "https://example.com/news"
+
+
+def test_voice_endpoint_requires_gemini_provider(monkeypatch):
+    monkeypatch.setenv("KAREN_REQUIRE_ACCESS_CODE", "false")
+    monkeypatch.setenv("KAREN_AI_API_KEY", "test-provider-key")
+    monkeypatch.setenv("KAREN_AI_BASE_URL", "https://api.groq.com/openai/v1")
+    response = client.post("/api/voice/speak", json={"text": "Hello"})
+    assert response.status_code == 501
+
+
+def test_voice_endpoint_generates_audio_for_gemini(monkeypatch, tmp_path):
+    monkeypatch.setenv("KAREN_REQUIRE_ACCESS_CODE", "false")
+    monkeypatch.setenv("KAREN_AI_API_KEY", "test-gemini-key")
+    monkeypatch.setenv(
+        "KAREN_AI_BASE_URL",
+        "https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+    async def fake_speech(api_key, text, output_dir, model, voice):
+        return "karen-test.wav", "audio/wav"
+
+    monkeypatch.setattr(web_app, "gemini_generate_speech", fake_speech)
+    response = client.post("/api/voice/speak", json={"text": "Hello KAREN"})
+    assert response.status_code == 200
+    assert response.json()["audio_url"].endswith("karen-test.wav")
