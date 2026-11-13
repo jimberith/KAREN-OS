@@ -292,6 +292,14 @@ async def status() -> dict[str, object]:
     }
 
 
+@app.post("/api/auth/check")
+async def check_access(
+    x_karen_access_code: str | None = Header(default=None),
+) -> dict[str, bool]:
+    _require_access(x_karen_access_code)
+    return {"authorized": True}
+
+
 @app.get("/api/diagnostics")
 async def diagnostics() -> dict[str, object]:
     api_key, model, _, base_url = _environment()
