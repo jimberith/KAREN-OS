@@ -1,3 +1,3 @@
-"""KAREN OS: a modular, browser-accessible personal AI assistant."""
+"""KAREN OS: a modular, multimodal personal AI assistant."""
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
