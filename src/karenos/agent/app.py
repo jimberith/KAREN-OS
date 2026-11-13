@@ -17,8 +17,8 @@ from pydantic import BaseModel, Field
 app = FastAPI(title="KAREN OS Local Agent", docs_url=None, redoc_url=None)
 
 _ALLOWED_ORIGINS = (
-    r"^https://[a-zA-Z0-9-]+\.app\.github\.dev$|"
-    r"^https://[a-zA-Z0-9-]+\.github\.dev$|"
+    r"^https://([a-zA-Z0-9-]+\.)*app\.github\.dev$|"
+    r"^https://([a-zA-Z0-9-]+\.)*github\.dev$|"
     r"^http://(localhost|127\.0\.0\.1)(:\d+)?$"
 )
 app.add_middleware(
