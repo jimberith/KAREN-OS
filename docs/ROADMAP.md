@@ -7,7 +7,7 @@
 - [x] Gemini native API integration with timeout/overload fallback
 - [x] Automated tests and GitHub Actions
 
-## v0.4.0 — multimodal command console
+## v0.4.0–v0.4.1 — multimodal command console
 
 - [x] Natural-language intent routing for chat, search, memory, image generation and device actions
 - [x] DuckDuckGo-powered web search with clickable result sources
@@ -15,7 +15,8 @@
 - [x] User-controlled memory notes with search, delete and JSON export
 - [x] User-triggered image upload and camera snapshot analysis
 - [x] Gemini 3.1 Flash Image generation and workspace storage
-- [x] Browser speech recognition and speech synthesis
+- [x] Browser speech recognition and browser speech synthesis fallback
+- [x] Optional Gemini 3.8 Flash-Lite server-generated TTS
 - [x] Local companion agent bound to 127.0.0.1
 - [x] Allowlisted desktop actions with explicit confirmation
 - [x] Local system telemetry dashboard
