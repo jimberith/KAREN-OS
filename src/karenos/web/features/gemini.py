@@ -36,7 +36,7 @@ async def _generate(
     model: str,
     payload: dict,
     *,
-    timeout_seconds: float = 25.0,
+    timeout_seconds: float = 20.0,
     fallback: bool = True,
     api_root: str = GEMINI_ROOT,
 ) -> dict:
