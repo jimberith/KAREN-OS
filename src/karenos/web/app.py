@@ -25,6 +25,7 @@ from karenos.web.features.gemini import (
     GeminiServiceError,
     analyze_image as gemini_analyze_image,
     generate_image as gemini_generate_image,
+    generate_speech as gemini_generate_speech,
     generate_text as gemini_generate_text,
 )
 from karenos.web.features.intents import classify_intent
@@ -87,6 +88,10 @@ class MemoryRequest(BaseModel):
 
 class ImageGenerationRequest(BaseModel):
     prompt: str = Field(min_length=3, max_length=3000)
+
+
+class SpeechRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=3500)
 
 
 def _environment() -> tuple[str, str, str, str]:
@@ -577,6 +582,33 @@ async def images_generate(
     except GeminiServiceError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return {"image_url": f"/generated/{filename}", "mime_type": mime, "model": os.getenv("KAREN_IMAGE_MODEL", "gemini-3.1-flash-image")}
+
+
+
+
+@app.post("/api/voice/speak")
+async def voice_speak(
+    payload: SpeechRequest,
+    x_karen_access_code: str | None = Header(default=None),
+) -> dict[str, str]:
+    _require_access(x_karen_access_code)
+    api_key, _, _, base_url = _environment()
+    if not api_key or _provider_host(base_url) != "generativelanguage.googleapis.com":
+        raise HTTPException(
+            status_code=501,
+            detail="Server-generated voice requires the Gemini provider. Browser speech remains available.",
+        )
+    try:
+        filename, mime = await gemini_generate_speech(
+            api_key,
+            payload.text,
+            GENERATED_DIR,
+            model=os.getenv("KAREN_TTS_MODEL", "gemini-3.8-flash-lite-tts").strip(),
+            voice=os.getenv("KAREN_TTS_VOICE", "Kore").strip(),
+        )
+    except GeminiServiceError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return {"audio_url": f"/generated/{filename}", "mime_type": mime}
 
 
 @app.get("/api/memory/export")
