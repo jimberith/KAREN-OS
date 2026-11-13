@@ -4,7 +4,7 @@
 
 KAREN OS is a user-space personal assistant project. It is inspired by fictional AI assistants, but it is not a replacement operating system or a fully autonomous system. Its browser application runs in GitHub Codespaces or on a Python host, while a separate local companion can perform a small set of approved actions on your physical computer.
 
-## v0.4.0 — multimodal command console
+## v0.4.1 — multimodal command console
 
 KAREN routes natural-language requests to the appropriate feature:
 
