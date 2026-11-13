@@ -181,3 +181,15 @@ The companion only listens on `127.0.0.1`. It supports a short app/website allow
 For public hosting, configure `KAREN_REQUIRE_ACCESS_CODE=true` and a strong `KAREN_ACCESS_PASSWORD`. Public URLs must not expose an unauthenticated AI API endpoint or public local-agent port.
 
 See [FEATURES.md](FEATURES.md) for supported commands, architecture and limitations.
+
+
+## Server-generated voice (v0.4.1)
+
+The **KAREN VOICE** control uses Gemini 3.8 Flash-Lite TTS (`gemini-3.8-flash-lite-tts`) with the `Kore` voice when the Gemini provider is configured. Audio is generated on demand and saved in the KAREN generated-media directory. If server TTS is unavailable or another provider is selected, the browser SpeechSynthesis voice is used instead.
+
+Optional local settings in `.env` or the hosting environment:
+
+```env
+KAREN_TTS_MODEL=gemini-3.8-flash-lite-tts
+KAREN_TTS_VOICE=Kore
+```
