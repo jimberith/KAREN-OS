@@ -49,8 +49,13 @@ KAREN sends the prompt to Gemini 3.1 Flash Image. Generated image data is saved 
 ## 6. Voice
 
 - VOICE uses the browser's SpeechRecognition/Web Speech API where available.
-- SPEAK uses the browser's speechSynthesis API.
-- Browser support and language availability vary. This version is not a custom wake-word detector or a streaming full-duplex voice interface.
+- KAREN VOICE prefers the Gemini 3.8 Flash-Lite TTS service (`gemini-3.8-flash-lite-tts`, voice `Kore`) when Gemini is configured.
+- If the server TTS service is unavailable or another provider is selected, KAREN VOICE falls back to the browser's speechSynthesis API.
+- The optional TTS settings are `KAREN_TTS_MODEL` and `KAREN_TTS_VOICE`.
+- TTS output is generated on demand, only while the user has enabled spoken replies. This is not continuous listening.
+- Browser speech recognition support and language availability vary. This version is not a custom wake-word detector or a streaming full-duplex voice interface.
+
+Google's current TTS model documentation: https://ai.google.dev/gemini-api/docs/speech-generation
 
 ## 7. Local device companion
 
