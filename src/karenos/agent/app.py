@@ -9,7 +9,6 @@ import shutil
 import subprocess
 import webbrowser
 from typing import Literal
-from urllib.parse import urlparse
 
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
