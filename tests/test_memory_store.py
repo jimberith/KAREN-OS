@@ -12,6 +12,8 @@ def test_memory_is_session_scoped(tmp_path):
     assert len(notes_a) == 1
     assert notes_a[0]["title"] == "Project"
     assert "Another user" not in str(notes_a)
+    assert len(notes_b) == 1
+    assert notes_b[0]["content"] == "Another user's private note"
 
 
 def test_conversation_history_persists_and_can_be_cleared(tmp_path):
