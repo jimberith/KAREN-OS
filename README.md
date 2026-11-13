@@ -6,7 +6,23 @@ KAREN OS is a learning and portfolio project inspired by fictional personal AI a
 
 > **Status: v0.3.0 browser MVP.** KAREN OS is a user-space assistant application, not a replacement operating system or a fully autonomous AI. It now includes a browser chat interface and a server-side AI integration. Voice input, wake-word activation, direct device camera access, hardware integration, and a desktop HUD remain future work.
 
-## Features in v0.3.0
+## KAREN OS v0.4.0 — multimodal command console
+
+KAREN OS now routes natural-language commands to the appropriate capability:
+
+- **AI conversation:** Gemini text responses with session context and safe provider error reporting.
+- **Intent routing:** simple commands are detected locally before any model call.
+- **Web search:** current web results are retrieved and shown with clickable sources.
+- **Persistent memory:** SQLite conversation history and user-saved notes, with export and delete controls.
+- **Visual understanding:** upload an image or take a user-triggered camera snapshot for Gemini analysis.
+- **Image generation:** generate and save images using Gemini 3.1 Flash Image (Nano Banana 2).
+- **Voice input/output:** browser speech recognition and speech synthesis controls.
+- **Device automation:** optional loopback-only local companion for an allowlist of application, website, volume and system-status actions. Every action requires explicit confirmation.
+- **HUD/dashboard:** local CPU, memory, disk and battery telemetry when the companion agent is connected.
+
+These features are deliberately separated. Browser camera use is snapshot-based, not continuous. The cloud app cannot control your laptop by itself; local desktop actions require the companion agent on that laptop.
+
+## Features in v0.4.0
 
 - **Browser assistant:** responsive chat page for phones, tablets, and computers.
 - **Voice controls:** optional browser speech recognition and spoken responses.
