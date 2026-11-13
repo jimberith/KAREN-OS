@@ -373,7 +373,7 @@ def test_gemini_falls_back_after_primary_model_503(monkeypatch):
         return None
 
     monkeypatch.setattr(web_app.httpx, "AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(web_app.asyncio, "sleep", no_wait)
+    monkeypatch.setattr(gemini_module.asyncio, "sleep", no_wait)
     response = client.post(
         "/api/chat",
         json={"messages": [{"role": "user", "content": "Hello"}]},
