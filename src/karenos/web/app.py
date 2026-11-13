@@ -334,33 +334,54 @@ async def diagnostics() -> dict[str, object]:
 
 
 @app.get("/api/history/{session_id}")
-async def get_history(session_id: str) -> dict[str, object]:
+async def get_history(
+    session_id: str,
+    x_karen_access_code: str | None = Header(default=None),
+) -> dict[str, object]:
+    _require_access(x_karen_access_code)
     session_id = _session_id(session_id)
     return {"messages": memory.history(session_id, limit=80)}
 
 
 @app.delete("/api/history/{session_id}")
-async def clear_history(session_id: str) -> dict[str, bool]:
+async def clear_history(
+    session_id: str,
+    x_karen_access_code: str | None = Header(default=None),
+) -> dict[str, bool]:
+    _require_access(x_karen_access_code)
     session_id = _session_id(session_id)
     memory.clear_history(session_id)
     return {"cleared": True}
 
 
 @app.get("/api/memory")
-async def get_memory(session_id: str = "default") -> dict[str, object]:
+async def get_memory(
+    session_id: str = "default",
+    x_karen_access_code: str | None = Header(default=None),
+) -> dict[str, object]:
+    _require_access(x_karen_access_code)
     session_id = _session_id(session_id)
     return {"notes": memory.search_notes(session_id, limit=20)}
 
 
 @app.post("/api/memory")
-async def add_memory(payload: MemoryRequest) -> dict[str, object]:
+async def add_memory(
+    payload: MemoryRequest,
+    x_karen_access_code: str | None = Header(default=None),
+) -> dict[str, object]:
+    _require_access(x_karen_access_code)
     session_id = _session_id(payload.session_id)
     note_id = memory.remember(session_id, payload.content, payload.title)
     return {"saved": True, "id": note_id}
 
 
 @app.delete("/api/memory/{note_id}")
-async def delete_memory(note_id: int, session_id: str = "default") -> dict[str, bool]:
+async def delete_memory(
+    note_id: int,
+    session_id: str = "default",
+    x_karen_access_code: str | None = Header(default=None),
+) -> dict[str, bool]:
+    _require_access(x_karen_access_code)
     session_id = _session_id(session_id)
     return {"deleted": memory.delete_note(session_id, note_id)}
 
@@ -551,7 +572,11 @@ async def images_generate(
 
 
 @app.get("/api/memory/export")
-async def export_memory(session_id: str = "default") -> dict[str, object]:
+async def export_memory(
+    session_id: str = "default",
+    x_karen_access_code: str | None = Header(default=None),
+) -> dict[str, object]:
+    _require_access(x_karen_access_code)
     session_id = _session_id(session_id)
     return {
         "session_id": session_id,
