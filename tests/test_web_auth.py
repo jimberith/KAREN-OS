@@ -4,6 +4,7 @@ import httpx
 from fastapi.testclient import TestClient
 
 import karenos.web.app as web_app
+import karenos.web.features.gemini as gemini_module
 
 client = TestClient(web_app.app)
 
@@ -83,7 +84,9 @@ def test_chat_rejects_when_api_key_missing(monkeypatch):
         json={"messages": [{"role": "user", "content": "Hello"}]},
     )
 
-    assert response.status_code == 503
+    assert response.status_code == 200
+    assert response.json()["intent"] == "chat"
+    assert "without an AI provider" in response.json()["reply"]
 
 
 def test_chat_uses_configured_openai_compatible_provider(monkeypatch):
@@ -311,7 +314,7 @@ def test_gemini_retries_503_then_succeeds(monkeypatch):
         return None
 
     monkeypatch.setattr(web_app.httpx, "AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(web_app.asyncio, "sleep", no_wait)
+    monkeypatch.setattr(gemini_module.asyncio, "sleep", no_wait)
     response = client.post(
         "/api/chat",
         json={"messages": [{"role": "user", "content": "Hello"}]},
