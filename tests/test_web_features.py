@@ -8,7 +8,8 @@ from karenos.web.features.memory import MemoryStore
 client = TestClient(web_app.app)
 
 
-def test_status_lists_v04_capabilities():
+def test_status_lists_v04_capabilities(monkeypatch):
+    monkeypatch.setenv("KAREN_AI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
     response = client.get("/api/status")
     assert response.status_code == 200
     features = response.json()["features"]
