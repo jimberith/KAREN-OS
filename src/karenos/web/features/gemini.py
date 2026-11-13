@@ -208,3 +208,90 @@ async def generate_image(
                 target.write_bytes(base64.b64decode(image_data["data"]))
                 return filename, mime
     raise GeminiServiceError("The image model returned no image. Try a more specific prompt.")
+
+
+async def generate_speech(
+    api_key: str,
+    text: str,
+    output_dir: Path,
+    *,
+    model: str = "gemini-3.8-flash-lite-tts",
+    voice: str = "Kore",
+) -> tuple[str, str]:
+    """Generate natural WAV speech with Gemini's dedicated text-to-speech model."""
+    text = text.strip()[:3500]
+    if not text:
+        raise GeminiServiceError("There is no text to speak.")
+
+    payload = {
+        "model": model,
+        "input": [{
+            "type": "user_input",
+            "content": [{
+                "type": "text",
+                "text": text,
+                "annotations": [{
+                    "type": "speech_metadata",
+                    "style": "clear, calm, natural personal-assistant delivery",
+                }],
+            }],
+        }],
+        "response_format": {"type": "audio"},
+        "generation_config": {"speech_config": [{"voice": voice}]},
+    }
+    timeout = httpx.Timeout(connect=8.0, read=60.0, write=15.0, pool=8.0)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.post(
+                f"{GEMINI_ROOT}/interactions",
+                headers={
+                    "x-goog-api-key": api_key,
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+    except httpx.TimeoutException as exc:
+        raise GeminiServiceError("Gemini speech generation timed out. Try again.") from exc
+    except httpx.RequestError as exc:
+        raise GeminiServiceError("Could not reach Gemini speech service.") from exc
+
+    if response.status_code >= 400:
+        try:
+            message = str(response.json().get("error", {}).get("message", ""))[:220]
+        except (ValueError, AttributeError):
+            message = ""
+        raise GeminiServiceError(
+            f"Gemini speech service returned HTTP {response.status_code}. {message}".strip()
+        )
+
+    data = response.json()
+    audio_data = ""
+    mime_type = "audio/wav"
+    output_audio = data.get("output_audio")
+    if isinstance(output_audio, dict):
+        audio_data = str(output_audio.get("data", ""))
+        mime_type = str(output_audio.get("mime_type", mime_type))
+    for step in data.get("steps", []):
+        if step.get("type") != "model_output":
+            continue
+        for item in step.get("content", []):
+            if item.get("type") == "audio" and item.get("data"):
+                audio_data = str(item["data"])
+                mime_type = str(item.get("mime_type", mime_type))
+                break
+        if audio_data:
+            break
+    if not audio_data:
+        raise GeminiServiceError("Gemini returned no audio. Browser speech remains available.")
+
+    try:
+        audio_bytes = base64.b64decode(audio_data, validate=True)
+    except ValueError as exc:
+        raise GeminiServiceError("Gemini returned invalid audio data.") from exc
+    if not audio_bytes:
+        raise GeminiServiceError("Gemini returned an empty audio file.")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"karen-voice-{__import__('uuid').uuid4().hex}.wav"
+    (output_dir / filename).write_bytes(audio_bytes)
+    return filename, mime_type
