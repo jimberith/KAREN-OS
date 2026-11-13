@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "karenos"
-version = "0.4.0"
+version = "0.4.1"
 description = "A modular personal AI assistant with browser and local-device tools"
 readme = "README.md"
 requires-python = ">=3.10"
