@@ -461,4 +461,4 @@ def test_gemini_timeout_has_actionable_error_when_all_models_time_out(monkeypatc
     )
 
     assert response.status_code == 502
-    assert "did not respond within the request timeout" in response.json()["detail"]
+    assert "timed out on the primary and fallback models" in response.json()["detail"]
