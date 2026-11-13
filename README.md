@@ -2,192 +2,131 @@
 
 **A modular, browser-accessible personal AI assistant built with Python.**
 
-KAREN OS is a learning and portfolio project inspired by fictional personal AI assistants. It combines a terminal chat interface, local conversation history, an optional hosted AI provider, optional speech output, and an explicitly launched webcam preview.
+KAREN OS is a user-space personal assistant project. It is inspired by fictional AI assistants, but it is not a replacement operating system or a fully autonomous system. Its browser application runs in GitHub Codespaces or on a Python host, while a separate local companion can perform a small set of approved actions on your physical computer.
 
-> **Status: v0.3.0 browser MVP.** KAREN OS is a user-space assistant application, not a replacement operating system or a fully autonomous AI. It now includes a browser chat interface and a server-side AI integration. Voice input, wake-word activation, direct device camera access, hardware integration, and a desktop HUD remain future work.
+## v0.4.0 — multimodal command console
 
-## KAREN OS v0.4.0 — multimodal command console
+KAREN routes natural-language requests to the appropriate feature:
 
-KAREN OS now routes natural-language commands to the appropriate capability:
+- **AI conversation:** Gemini native API or an OpenAI-compatible provider.
+- **Intent routing:** detects common commands before calling the model.
+- **Web search:** retrieves public search results and shows source links.
+- **Persistent memory:** SQLite conversation history and private notes, scoped to a browser session.
+- **Visual understanding:** user-uploaded images or one camera snapshot analysed by Gemini.
+- **Image generation:** Gemini 3.1 Flash Image; generated files are stored in the KAREN data directory.
+- **Voice input/output:** browser speech recognition and browser speech synthesis.
+- **Device automation:** optional local companion for an allowlist of website/app/volume/status actions. Every action requires an explicit confirmation.
+- **System dashboard:** CPU, RAM, disk and battery metrics when the local companion is connected.
 
-- **AI conversation:** Gemini text responses with session context and safe provider error reporting.
-- **Intent routing:** simple commands are detected locally before any model call.
-- **Web search:** current web results are retrieved and shown with clickable sources.
-- **Persistent memory:** SQLite conversation history and user-saved notes, with export and delete controls.
-- **Visual understanding:** upload an image or take a user-triggered camera snapshot for Gemini analysis.
-- **Image generation:** generate and save images using Gemini 3.1 Flash Image (Nano Banana 2).
-- **Voice input/output:** browser speech recognition and speech synthesis controls.
-- **Device automation:** optional loopback-only local companion for an allowlist of application, website, volume and system-status actions. Every action requires explicit confirmation.
-- **HUD/dashboard:** local CPU, memory, disk and battery telemetry when the companion agent is connected.
+The camera is not continuously recording. Voice recognition availability depends on the browser. Device controls work only when the local companion is installed and running on the physical computer. The model cannot run arbitrary shell commands.
 
-These features are deliberately separated. Browser camera use is snapshot-based, not continuous. The cloud app cannot control your laptop by itself; local desktop actions require the companion agent on that laptop.
+See [docs/FEATURES.md](docs/FEATURES.md) for supported commands and limitations.
 
-## Features in v0.4.0
+## Quick start: GitHub Codespaces
 
-- **Browser assistant:** responsive chat page for phones, tablets, and computers.
-- **Voice controls:** optional browser speech recognition and spoken responses.
-- **Web backend:** input limits, basic rate limit, server-side API key, and optional app password for public hosting.
-- **Offline demo mode:** launch and test the program without an API key.
-- **AI integration:** server-side integration with OpenAI-compatible providers (OpenAI, Gemini, Groq, and OpenRouter).
-- **Local memory:** conversation history stored in a JSON file on your computer.
-- **Optional speech output:** text-to-speech using `pyttsx3`.
-- **Optional vision preview:** manually launched webcam preview using OpenCV.
-- **Modular core:** asynchronous event bus and service lifecycle manager.
-- **Automated tests:** pytest suite and GitHub Actions workflow.
+1. Open [KAREN-OS](https://github.com/jimberith/KAREN-OS).
+2. Select **Code → Codespaces → Create codespace on main**.
+3. Wait for the environment setup.
+4. Open **Terminal → New Terminal**.
+5. Run:
 
-## Quick start on Ubuntu / Linux
+```bash
+git pull --ff-only origin main
+python -m pip install -e ".[web,agent]"
+karenos-web
+```
+
+Keep that terminal running. In the **Ports** tab, open port **8000** in the browser. Keep port 8000 **Private**.
+
+If an older KAREN server is already running, press **Ctrl+C** in its terminal once before running `karenos-web`. The launcher checks for a healthy existing server and avoids starting a duplicate.
+
+## Configure AI
+
+In GitHub **Settings → Codespaces → Codespaces secrets**, add these repository-restricted secrets:
+
+| Secret | Value |
+|---|---|
+| `KAREN_AI_API_KEY` | API key from your selected provider |
+| `KAREN_AI_BASE_URL` | Provider base URL |
+| `KAREN_AI_MODEL` | Model ID from that provider |
+
+For Gemini, use a key from [Google AI Studio](https://aistudio.google.com/apikey), base URL `https://generativelanguage.googleapis.com/v1beta/openai/`, and a model ID currently enabled for your project. Gemini's native API is used for vision and image generation. Never commit API keys or paste them into public code, issues or screenshots.
+
+After changing Codespaces secrets, stop and restart the Codespace so the environment receives them.
+
+## Connect your physical computer
+
+Codespaces runs remotely. It cannot directly launch applications on your laptop or adjust your laptop's volume. To enable those functions, install the local companion on the physical computer:
 
 ```bash
 git clone https://github.com/jimberith/KAREN-OS.git
 cd KAREN-OS
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev]"
+python -m pip install -e ".[agent]"
+karenos-agent
+```
+
+The agent binds only to `127.0.0.1:8765`, generates a private token on first launch, and prints it once. In KAREN OS open **Settings**, use `http://127.0.0.1:8765`, paste the token, and select **Save & Connect**. If the browser asks permission for local-network access, allow it for your KAREN Codespaces page.
+
+The local companion is currently tested as a Linux-focused first implementation. App availability depends on installed desktop software. Volume control needs PipeWire (`wpctl`) or PulseAudio (`pactl`). Do not expose port 8765 to your LAN or the public internet.
+
+## Local run (Ubuntu/Linux)
+
+```bash
+git clone https://github.com/jimberith/KAREN-OS.git
+cd KAREN-OS
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[web,agent]"
 cp .env.example .env
-karenos
+karenos-web
 ```
 
-The app starts in offline demo mode with no API key. You can also run it as a Python module:
+Edit `.env` locally to configure the provider. Keep it private; `.env` is excluded by `.gitignore`.
+
+## Main natural-language commands
+
+- `Search the web for the latest ...`
+- `Remember that ...`
+- `What do you remember?`
+- `Generate an image of ...`
+- `Open YouTube`, `Open Google`, `Open GitHub`
+- `Launch calculator`, `Open files`, `Open terminal`, `Open VS Code`
+- `Mute volume`, `Unmute`, `Volume up`, `Volume down`
+- `Show system status`
+
+For device actions, KAREN presents a confirmation card. Only the approved local agent action is sent after you confirm it.
+
+## Development and verification
+
+Install dev dependencies and run tests:
 
 ```bash
-python -m karenos
-```
-
-## Run from any device with GitHub Codespaces
-
-You can run the terminal version in a cloud development environment:
-
-1. Open the repository and choose **Code → Codespaces → Create codespace on main**.
-2. Wait for the Codespace to prepare the environment.
-3. In its terminal, run `karenos`.
-
-To enable AI responses, add your API credentials as GitHub Codespaces secrets. See [docs/CODESPACES.md](docs/CODESPACES.md) for the full instructions and security notes.
-
-Codespaces runs the terminal app remotely. For a public browser URL, deploy the web application using the Render instructions below.
-
-## Deploy the browser app to a public URL
-
-A Render Blueprint is included in the repository. Follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) to deploy the web interface and configure private server environment variables. Do not commit API keys or paste them into source files.
-
-## Enable AI responses
-
-Install the optional AI dependency:
-
-```bash
-python -m pip install -e ".[ai]"
-```
-
-Edit the local `.env` file:
-
-```env
-KAREN_AI_API_KEY=your_provider_api_key
-KAREN_AI_BASE_URL=https://api.openai.com/v1
-KAREN_AI_MODEL=your-provider-supported-model
-```
-
-Use a model identifier available to your provider account. The project does not include an API key. Keep `.env` private and never commit it.
-
-## Optional features
-
-**Speech output**
-
-```bash
-python -m pip install -e ".[voice]"
-```
-
-Set `KAREN_TTS_ENABLED=true` in `.env`. Some Linux installations also need a system speech engine such as eSpeak.
-
-**Camera preview**
-
-```bash
-python -m pip install -e ".[vision]"
-karenos-camera
-```
-
-Press Q in the preview window to close it. KAREN OS does not activate the webcam in the background.
-
-## Run the tests
-
-```bash
-python -m pip install -e ".[dev]"
+python -m pip install -e ".[dev,web,agent]"
 pytest
 ruff check src tests
 ```
 
-## Where is conversation memory saved?
+GitHub Actions runs the test suite on Python 3.10, 3.11 and 3.12.
 
-By default:
+## Security and known limitations
 
-```text
-~/.local/share/karenos/conversations.json
-```
+- AI API keys remain on the server, never in browser JavaScript.
+- Codespaces port 8000 should remain Private.
+- Public deployments must set `KAREN_REQUIRE_ACCESS_CODE=true` and a strong `KAREN_ACCESS_PASSWORD`.
+- Local agent actions are allowlisted, token-protected, and confirmation-gated.
+- Browser camera analysis is snapshot-based and requires permission.
+- Browser speech recognition may use the browser's speech service and is not available in every browser.
+- SQLite memory and generated images are stored in the KAREN data directory; back up or delete that directory to manage local data.
+- Image generation, AI requests and web search are subject to provider availability, quotas, and billing.
+- KAREN does not yet provide a continuous wake word, full-duplex low-latency voice conversation, multi-frame video understanding, a persistent desktop HUD, calendar actions or arbitrary file management. Those are future roadmap items.
 
-Set `KAREN_DATA_DIR` in `.env` to use another directory. Use `/clear` inside the app to delete the saved conversation history.
+## Documentation
 
-## Repository structure
-
-```text
-src/karenos/
-  brain/       Assistant and AI provider adapter
-  core/        Event bus and service lifecycle
-  memory/      Local JSON conversation store
-  ui/          Terminal interface
-  vision/      Optional webcam preview
-  voice/       Optional text-to-speech
-tests/         Unit tests
-docs/          Architecture, installation, and roadmap
-```
-
-## Privacy and safety
-
-- The base app stores conversation history locally in plain JSON. Anyone with access to your user account can read that file.
-- When an AI provider is configured, prompts and the selected recent chat history are sent to that provider.
-- Camera access happens only after manually launching `karenos-camera`.
-- This release does not perform face recognition, continuous microphone recording, desktop control, or hardware actuation.
-- Do not commit API keys, private conversations, webcam recordings, or downloaded model weights.
-
-## Roadmap
-
-See [docs/ROADMAP.md](docs/ROADMAP.md) for planned voice input, wake-word activation, object detection, a desktop dashboard, richer memory, and hardware integrations. Roadmap items are not current features.
-
-## Contributing
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
-
-## License
-
-MIT. See [LICENSE](LICENSE).
-
-## Run KAREN OS in a browser (hosted web app)
-
-The repository includes a responsive browser interface and a Python API server. To run it locally:
-
-```bash
-python -m pip install -e ".[web]"
-cp .env.example .env
-```
-
-Set `KAREN_AI_API_KEY` and `KAREN_AI_MODEL` in your local, untracked `.env` file, then run:
-
-```bash
-uvicorn karenos.web.app:app --host 0.0.0.0 --port 8000
-```
-
-Open `http://localhost:8000` in your browser.
-
-### Deploy to a public URL with Render
-
-A `render.yaml` Blueprint is included:
-
-1. Create or sign in to a Render account.
-2. Choose **New → Blueprint**.
-3. Connect your GitHub account and select `jimberith/KAREN-OS`.
-4. Render reads `render.yaml` and asks for the three private values.
-5. Enter a **newly rotated** OpenAI API key, a model available to your API account, and a unique KAREN app access password.
-6. Create the Blueprint and wait for the first deploy to finish.
-7. Open the Render-provided HTTPS URL on your phone, laptop, or tablet.
-
-The API key is held by the server as an environment variable. It is not embedded in browser JavaScript or committed to Git. The access password prevents visitors from using the app without authorization.
-
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the complete guide and security notes.
+- [Features and supported commands](docs/FEATURES.md)
+- [Codespaces setup](docs/CODESPACES.md)
+- [Deployment](docs/DEPLOYMENT.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Contributing](CONTRIBUTING.md)
