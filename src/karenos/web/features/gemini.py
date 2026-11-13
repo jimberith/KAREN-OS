@@ -117,23 +117,25 @@ async def generate_text(
     *,
     search: bool = False,
 ) -> tuple[str, list[dict[str, str]]]:
+    system_text = "\n\n".join(
+        message["content"] for message in messages if message.get("role") == "system"
+    )
+    if not system_text:
+        system_text = (
+            "You are KAREN, a capable personal AI assistant. Be clear, accurate, helpful "
+            "and concise. Admit uncertainty. Never claim to perform actions unless a "
+            "connected tool actually did so. Confirm before consequential actions."
+        )
+    conversation = [message for message in messages if message.get("role") in {"user", "assistant"}]
     contents = [
         {
             "role": "user" if message["role"] == "user" else "model",
             "parts": [{"text": message["content"][-5000:]}],
         }
-        for message in messages[-16:]
+        for message in conversation[-16:]
     ]
     payload: dict = {
-        "systemInstruction": {
-            "parts": [{
-                "text": (
-                    "You are KAREN, a capable personal AI assistant. Be clear, accurate, "
-                    "helpful and concise. Admit uncertainty. Never claim to perform actions "
-                    "unless a connected tool actually did so. Confirm before consequential actions."
-                )
-            }]
-        },
+        "systemInstruction": {"parts": [{"text": system_text}]},
         "contents": contents,
         "generationConfig": {"maxOutputTokens": 1000, "temperature": 0.65},
     }
