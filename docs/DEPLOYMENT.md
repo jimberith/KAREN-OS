@@ -74,3 +74,14 @@ In GitHub Codespaces, `KAREN_REQUIRE_ACCESS_CODE` is false by default. Keep port
 - **Access code rejected:** enter the exact `KAREN_ACCESS_PASSWORD` value saved on Render.
 - **AI provider request failed:** inspect the Render service logs. Confirm the key is active, the provider account has available quota, and the model identifier is available to that account.
 - **Page is unavailable:** check the latest Render deployment and the `/health` health-check endpoint.
+
+
+## v0.4 capabilities
+
+The browser app includes web search, SQLite memory, image upload/camera snapshot analysis, Gemini image generation, browser voice controls, and the optional local companion agent. For deployment:
+
+- Keep `KAREN_AI_API_KEY` and model settings in the hosting service's private environment.
+- Enable `KAREN_REQUIRE_ACCESS_CODE=true` and set `KAREN_ACCESS_PASSWORD` for public access.
+- Do not expose the local agent port 8765 to the internet.
+- Generated images are stored under the configured KAREN data directory.
+- The local agent is designed for a companion process on the same physical device as the browser.
