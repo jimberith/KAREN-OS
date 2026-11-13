@@ -166,6 +166,16 @@
     </section>
   </div>
 
+  <div class="modal-overlay" id="auth-modal" hidden>
+    <form class="modal-card auth-card" id="auth-form">
+      <div class="eyebrow">AUTHENTICATION REQUIRED</div>
+      <h2>Welcome back.</h2>
+      <p class="modal-copy">Enter the private app access code configured by the owner.</p>
+      <input id="access-code" type="password" placeholder="Access code" autocomplete="current-password" required>
+      <button class="primary-button" type="submit" id="auth-submit">ACCESS KAREN OS</button>
+      <div class="inline-status" id="auth-error"></div>
+    </form>
+  </div>
   <div class="toast" id="toast" role="status"></div>
 </body>
 </html>
