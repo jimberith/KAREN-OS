@@ -13,6 +13,7 @@ import httpx
 
 logger = logging.getLogger("karenos.web.gemini")
 GEMINI_ROOT = "https://generativelanguage.googleapis.com/v1beta"
+GEMINI_V1_ROOT = "https://generativelanguage.googleapis.com/v1"
 
 
 class GeminiServiceError(RuntimeError):
@@ -37,6 +38,7 @@ async def _generate(
     *,
     timeout_seconds: float = 25.0,
     fallback: bool = True,
+    api_root: str = GEMINI_ROOT,
 ) -> dict:
     models = _model_chain(model) if fallback else [model]
     last_error: Exception | None = None
@@ -44,7 +46,7 @@ async def _generate(
 
     async with httpx.AsyncClient(timeout=timeout) as client:
         for candidate in models:
-            url = f"{GEMINI_ROOT}/models/{quote(candidate, safe='-_.')}:generateContent"
+            url = f"{api_root}/models/{quote(candidate, safe='-_.')}:generateContent"
             for attempt in range(2):
                 try:
                     response = await client.post(
@@ -190,6 +192,7 @@ async def generate_image(
         payload,
         timeout_seconds=70.0,
         fallback=False,
+        api_root=GEMINI_V1_ROOT,
     )
     for candidate in data.get("candidates", []):
         for part in candidate.get("content", {}).get("parts", []):
