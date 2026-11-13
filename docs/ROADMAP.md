@@ -1,55 +1,47 @@
 # Roadmap
 
-## v0.1.0 - Laptop MVP foundation
+## v0.1.0–v0.3.4 — foundation and browser MVP
 
-- [x] Python package and command-line interface
-- [x] Local JSON conversation history
-- [x] Offline demo mode
-- [x] Optional AI provider adapter
-- [x] Optional text-to-speech output
-- [x] Explicitly launched webcam preview
-- [x] Event bus and service lifecycle foundation
-- [x] Unit tests and CI workflow
+- [x] Modular Python package, CLI and service lifecycle
+- [x] Browser chat and provider configuration
+- [x] Gemini native API integration with timeout/overload fallback
+- [x] Automated tests and GitHub Actions
 
-## v0.2.0 - Browser chat
+## v0.4.0 — multimodal command console
 
-- [x] Responsive browser chat interface
-- [x] FastAPI backend and server-side OpenAI integration
-- [x] Separate app-password protection for public hosting
-- [x] Keep API key out of browser code
+- [x] Natural-language intent routing for chat, search, memory, image generation and device actions
+- [x] DuckDuckGo-powered web search with clickable result sources
+- [x] Persistent SQLite chat history scoped by browser session
+- [x] User-controlled memory notes with search, delete and JSON export
+- [x] User-triggered image upload and camera snapshot analysis
+- [x] Gemini 3.1 Flash Image generation and workspace storage
+- [x] Browser speech recognition and speech synthesis
+- [x] Local companion agent bound to 127.0.0.1
+- [x] Allowlisted desktop actions with explicit confirmation
+- [x] Local system telemetry dashboard
+- [x] One-command web and local-agent launchers
 
-## v0.3.0 - Browser interaction
+## Planned v0.5 — deeper assistant intelligence
 
-- [x] Optional browser speech recognition for voice input
-- [x] Optional browser speech synthesis for spoken replies
-- [x] No separate app login in private GitHub Codespaces mode
-- [x] More useful AI provider error messages
-- [x] Private port forwarding by default
+- [ ] Streaming spoken responses and lower-latency voice conversation
+- [ ] Better entity-aware memory retrieval and user-editable preferences
+- [ ] Background task queue with task history and cancellation
+- [ ] More robust search providers and source quality checks
+- [ ] Optional document ingestion and semantic retrieval
 
-## Planned: KAREN-inspired capabilities
+## Planned v0.6 — advanced perception and integrations
 
-These are original implementations inspired by the broad functions of a fictional suit assistant. They are not a reproduction of a film character, proprietary software, or movie scenes.
+- [ ] Multi-frame video understanding with explicit capture controls
+- [ ] Wake-word service running locally with visible microphone state
+- [ ] Calendar, reminders and approved external integrations
+- [ ] User-approved file search and file operations
+- [ ] Local desktop overlay / HUD with permission controls
 
-### v0.4 - Vision and situational awareness
-- Camera permission flow with a visible camera indicator
-- Capture a frame on user request
-- Image understanding and object descriptions through a vision-capable model
-- User-controlled image upload; no silent background recording
+## Security principles
 
-### v0.5 - Memory and personalization
-- Persistent, user-controlled conversation memory
-- Search and summarize saved notes
-- Export and delete memory controls
-
-### v0.6 - Assistant tools
-- Weather and web-search tools with clear source display
-- Calendar and task integrations after explicit account authorization
-- Confirm-before-action workflow for messages, files, and device actions
-
-### v0.7 - HUD and hardware
-- Live system-status dashboard
-- Optional desktop overlay
-- Simulated device panel before connecting physical hardware
-- MQTT integrations with device allowlists and audit logs
-
-Roadmap items are proposals and are not implemented until checked off.
+- API keys remain server-side.
+- Local device actions are allowlisted and require user confirmation.
+- The companion binds to loopback only, never to a LAN interface.
+- Camera and microphone require explicit user action.
+- User memory can be exported and deleted.
+- No arbitrary shell command execution is exposed to the model or browser.
