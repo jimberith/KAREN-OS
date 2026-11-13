@@ -290,6 +290,7 @@ async def status() -> dict[str, object]:
             "image_generation": host == "generativelanguage.googleapis.com",
             "browser_voice_input": True,
             "browser_voice_output": True,
+            "server_voice_output": host == "generativelanguage.googleapis.com",
             "local_device_agent": True,
             "confirmation_gated_actions": True,
         },
