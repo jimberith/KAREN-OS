@@ -44,7 +44,7 @@ memory = MemoryStore(DATA_DIR / "karenos.sqlite3")
 app = FastAPI(
     title="KAREN OS",
     description="A modular personal AI assistant with search, memory, vision and local-device tools.",
-    version="0.4.0",
+    version="0.4.1",
     docs_url=None,
     redoc_url=None,
 )
@@ -262,7 +262,7 @@ async def home() -> FileResponse:
 
 @app.get("/health")
 async def health() -> dict[str, str]:
-    return {"status": "ok", "service": "karen-os", "version": "0.4.0"}
+    return {"status": "ok", "service": "karen-os", "version": "0.4.1"}
 
 
 @app.get("/api/status")
@@ -277,7 +277,7 @@ async def status() -> dict[str, object]:
     }.get(host, host or "not-configured")
     return {
         "application": "KAREN OS",
-        "version": "0.4.0",
+        "version": "0.4.1",
         "ai_ready": bool(api_key and model and base_url),
         "api_key_configured": bool(api_key),
         "provider_host": host or "not-configured",
