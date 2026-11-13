@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#090d18">
-  <meta name="description" content="KAREN OS personal AI assistant">
-  <title>KAREN OS | Personal AI</title>
+  <meta name="theme-color" content="#080d18">
+  <meta name="description" content="KAREN OS personal AI command interface">
+  <title>KAREN OS</title>
   <link rel="stylesheet" href="/assets/styles.css">
   <script src="/assets/app.js" defer></script>
 </head>
@@ -15,93 +15,157 @@
   <div class="app-shell">
     <header class="topbar">
       <a class="brand" href="/" aria-label="KAREN OS home">
-        <span class="brand-mark"><span></span><span></span><span></span></span>
+        <span class="brand-mark"><i></i><i></i><i></i></span>
         <span class="brand-name">KAREN<span>OS</span></span>
       </a>
-      <div class="topbar-right">
-        <span class="status-pill"><span class="status-dot"></span><span id="system-status">CONNECTING</span></span>
-        <button class="icon-button" id="clear-chat" type="button" title="Start a new chat" aria-label="Start a new chat">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"/></svg>
+      <div class="topbar-center">
+        <span class="system-pulse"></span>
+        <span id="system-status">INITIALIZING</span>
+        <span class="topbar-divider">/</span>
+        <span id="provider-name">AI PROVIDER</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-button" id="dashboard-button" type="button" title="Device dashboard" aria-label="Device dashboard">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/></svg>
+        </button>
+        <button class="icon-button" id="memory-button" type="button" title="Memory" aria-label="Memory">
+          <svg viewBox="0 0 24 24"><path d="M12 3a7 7 0 0 0-4 12.75V19h8v-3.25A7 7 0 0 0 12 3Z"/><path d="M9 22h6M9 16h6M10 7h4"/></svg>
+        </button>
+        <button class="icon-button" id="settings-button" type="button" title="Settings and device connection" aria-label="Settings">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.1 1.9-1.8 1.8-1.9-1.1a8 8 0 0 1-1.3.5l-.5 2.1h-2.6l-.5-2.1a8 8 0 0 1-1.3-.5l-1.9 1.1L6.9 17l1.1-1.9a8 8 0 0 1-.5-1.3l-2.1-.5v-2.6l2.1-.5a8 8 0 0 1 .5-1.3L6.9 7 8.7 5.2l1.9 1.1a8 8 0 0 1 1.3-.5l.5-2.1H15l.5 2.1a8 8 0 0 1 1.3.5l1.9-1.1L20.5 7l-1.1 1.9a8 8 0 0 1 .5 1.3l2.1.5v2.6l-2.1.5a8 8 0 0 1-.5 1.2Z"/></svg>
+        </button>
+        <button class="icon-button" id="clear-chat" type="button" title="Clear conversation" aria-label="Clear conversation">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"/></svg>
         </button>
       </div>
     </header>
 
     <main class="workspace">
       <section class="intro">
-        <div class="eyebrow"><span class="eyebrow-line"></span> PERSONAL AI INTERFACE <span class="eyebrow-line"></span></div>
-        <h1>Your world,<br><span>in conversation.</span></h1>
-        <p class="intro-copy">A personal assistant interface, ready when you are.</p>
+        <div class="eyebrow"><span></span> PERSONAL INTELLIGENCE SYSTEM <span></span></div>
+        <h1>Your world.<br><em>One command away.</em></h1>
+        <p class="intro-copy">Ask naturally. KAREN chooses the right capability and shows you what it is doing.</p>
+      </section>
+
+      <section class="status-strip" aria-label="System capabilities">
+        <div class="status-item"><span class="status-led"></span><span>AI CORE</span><b id="ai-state">CHECKING</b></div>
+        <div class="status-item"><span class="status-led"></span><span>MEMORY</span><b>LOCAL</b></div>
+        <div class="status-item"><span class="status-led" id="device-led"></span><span>DEVICE BRIDGE</span><b id="device-state">NOT CONNECTED</b></div>
+        <div class="status-item"><span class="status-led"></span><span>SESSION</span><b>PRIVATE</b></div>
       </section>
 
       <section class="chat-panel" aria-label="KAREN conversation">
         <div class="chat-heading">
           <div class="assistant-id">
-            <div class="assistant-avatar"><span class="avatar-core"></span></div>
+            <div class="assistant-avatar"><span class="avatar-core"></span><span class="avatar-ring"></span></div>
             <div>
-              <div class="assistant-name">KAREN</div>
-              <div class="assistant-subtitle">PERSONAL ASSISTANT <span class="tiny-separator">·</span> WEB SESSION</div>
+              <div class="assistant-name">KAREN <span class="online-tag">ONLINE</span></div>
+              <div class="assistant-subtitle">INTENT ROUTER <span>·</span> MULTIMODAL ASSISTANT <span>·</span> V0.4</div>
             </div>
           </div>
-          <div class="session-label"><span class="pulse"></span> SECURE SESSION</div>
+          <div class="session-label"><span class="pulse"></span> ENCRYPTED PROVIDER SESSION</div>
+        </div>
+
+        <div class="quick-actions" aria-label="Quick commands">
+          <button class="quick-chip" data-prompt="Search the web for the latest "><span class="chip-icon">⌕</span> Search web</button>
+          <button class="quick-chip" data-prompt="Generate an image of "><span class="chip-icon">✳</span> Generate image</button>
+          <button class="quick-chip" data-prompt="Remember that "><span class="chip-icon">◇</span> Remember</button>
+          <button class="quick-chip" id="quick-vision"><span class="chip-icon">◎</span> See with camera</button>
+          <button class="quick-chip" id="quick-device"><span class="chip-icon">⌘</span> Device actions</button>
         </div>
 
         <div class="messages" id="messages" aria-live="polite">
           <article class="message assistant-message">
             <div class="message-avatar">K</div>
             <div class="message-content">
-              <div class="message-author">KAREN <span>JUST NOW</span></div>
-              <div class="message-bubble">Hello. I'm KAREN, your personal AI assistant. What would you like to work on?</div>
+              <div class="message-author">KAREN <span>NOW</span></div>
+              <div class="message-bubble">I'm ready. Ask me a question, request a web search, show me an image, or ask me to perform an approved action on your connected device.</div>
             </div>
           </article>
         </div>
 
         <div class="typing-indicator" id="typing-indicator" hidden>
-          <span></span><span></span><span></span><small>KAREN IS THINKING</small>
+          <span></span><span></span><span></span><small>KAREN IS PROCESSING</small>
         </div>
 
         <form class="composer" id="chat-form">
-          <label class="sr-only" for="message-input">Write a message</label>
-          <textarea id="message-input" rows="1" maxlength="4000" placeholder="Message KAREN..." autocomplete="off"></textarea>
+          <label class="sr-only" for="message-input">Message KAREN</label>
+          <textarea id="message-input" rows="1" maxlength="5000" placeholder="Give KAREN a command or ask a question..." autocomplete="off"></textarea>
           <div class="composer-bottom">
             <div class="composer-tools">
               <button class="tool-button" id="voice-input" type="button" title="Speak to KAREN" aria-label="Speak to KAREN" aria-pressed="false">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"/></svg>
-                <span>VOICE</span>
+                <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"/></svg><span>VOICE</span>
               </button>
               <button class="tool-button" id="voice-output" type="button" title="Read KAREN replies aloud" aria-label="Read KAREN replies aloud" aria-pressed="false">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="M17 9a5 5 0 0 1 0 6m3-9a9 9 0 0 1 0 12"/></svg>
-                <span>SPEAK</span>
+                <svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="M17 9a5 5 0 0 1 0 6m3-9a9 9 0 0 1 0 12"/></svg><span>SPEAK</span>
               </button>
+              <button class="tool-button" id="attach-image" type="button" title="Upload an image for analysis" aria-label="Upload image">
+                <svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/><rect x="3" y="3" width="18" height="18" rx="4"/></svg><span>IMAGE</span>
+              </button>
+              <button class="tool-button" id="camera-button" type="button" title="Capture a camera frame" aria-label="Camera">
+                <svg viewBox="0 0 24 24"><path d="M4 7h3l2-3h6l2 3h3a2 2 0 0 1 2 2v10H2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3"/></svg><span>CAMERA</span>
+              </button>
+              <input id="image-input" type="file" accept="image/jpeg,image/png,image/webp" hidden>
             </div>
             <span class="composer-hint">ENTER TO SEND <span>·</span> SHIFT + ENTER FOR NEW LINE</span>
-            <button class="send-button" id="send-button" type="submit" aria-label="Send message">
-              <span>SEND</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12 20 4l-5 16-3-6-8-2Zm8 2 8-10"/></svg>
-            </button>
+            <button class="send-button" id="send-button" type="submit"><span>SEND</span><svg viewBox="0 0 24 24"><path d="m4 12 16-8-5 16-3-6-8-2Z"/></svg></button>
           </div>
         </form>
         <div class="panel-footer">
-          <span><span class="lock-icon">⌑</span> PRIVATE SERVER CONNECTION</span>
-          <span>AI RESPONSES MAY NEED VERIFICATION</span>
+          <span><span class="lock-icon">⌑</span> API KEYS STAY SERVER-SIDE</span>
+          <span>DEVICE ACTIONS REQUIRE YOUR CONFIRMATION</span>
         </div>
       </section>
-      <footer class="page-footer">KAREN OS <span>·</span> A PERSONAL AI PROJECT <span>·</span> V0.3.4</footer>
+      <footer class="page-footer">KAREN OS <span>·</span> PERSONAL AI COMMAND SYSTEM <span>·</span> V0.4.0</footer>
     </main>
   </div>
 
-  <div class="auth-overlay" id="auth-overlay" hidden>
-    <form class="auth-card" id="auth-form">
-      <div class="auth-symbol"><span></span><span></span><span></span></div>
-      <div class="eyebrow">AUTHENTICATION REQUIRED</div>
-      <h2>Welcome back.</h2>
-      <p>This KAREN OS deployment is protected. Enter the private access code configured by its owner.</p>
-      <label for="access-code">ACCESS CODE</label>
-      <input id="access-code" type="password" autocomplete="current-password" placeholder="Enter access code" required>
-      <button class="auth-submit" type="submit" id="auth-submit">ACCESS KAREN OS <span>↗</span></button>
-      <div class="auth-error" id="auth-error" role="alert"></div>
-      <div class="auth-note"><span class="lock-icon">⌑</span> Your access code is sent only to this server for verification.</div>
-    </form>
+  <div class="modal-overlay" id="settings-modal" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal-heading"><div><div class="eyebrow">LOCAL COMPANION</div><h2 id="settings-title">Connect your device</h2></div><button class="icon-button close-modal" type="button" data-close="settings-modal" aria-label="Close">×</button></div>
+      <p class="modal-copy">The KAREN backend runs in Codespaces. To open applications or control volume on this computer, run the local companion agent on this device.</p>
+      <div class="field"><label for="agent-url">LOCAL AGENT ADDRESS</label><input id="agent-url" value="http://127.0.0.1:8765" autocomplete="url"></div>
+      <div class="field"><label for="agent-token">LOCAL AGENT TOKEN</label><input id="agent-token" type="password" placeholder="Paste the token printed by karenos-agent" autocomplete="off"></div>
+      <div class="button-row"><button class="primary-button" id="save-agent" type="button">SAVE & CONNECT</button><span class="inline-status" id="agent-connect-status">Not connected</span></div>
+      <div class="setup-note"><b>Local setup</b><code>python -m pip install -e ".[agent]"</code><code>karenos-agent</code><span>Keep the agent bound to 127.0.0.1. Never expose port 8765 publicly.</span></div>
+    </section>
   </div>
+
+  <div class="modal-overlay" id="memory-modal" hidden>
+    <section class="modal-card wide-modal" role="dialog" aria-modal="true" aria-labelledby="memory-title">
+      <div class="modal-heading"><div><div class="eyebrow">PERSONAL CONTEXT</div><h2 id="memory-title">KAREN memory</h2></div><button class="icon-button close-modal" type="button" data-close="memory-modal" aria-label="Close">×</button></div>
+      <p class="modal-copy">Your notes and chat history are stored in the KAREN workspace database. You can delete individual notes or clear the chat at any time.</p>
+      <form id="memory-form" class="memory-form"><input id="memory-title-input" placeholder="Note title (optional)" maxlength="120"><textarea id="memory-content-input" rows="2" placeholder="Something KAREN should remember..." maxlength="3000" required></textarea><button class="primary-button" type="submit">SAVE MEMORY</button></form>
+      <div class="memory-list" id="memory-list"><div class="empty-state">Loading saved memories…</div></div>
+      <div class="modal-footer"><button class="secondary-button" id="export-memory" type="button">EXPORT MEMORY</button></div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" id="camera-modal" hidden>
+    <section class="modal-card camera-card" role="dialog" aria-modal="true" aria-labelledby="camera-title">
+      <div class="modal-heading"><div><div class="eyebrow">VISUAL PERCEPTION</div><h2 id="camera-title">Camera capture</h2></div><button class="icon-button close-modal" type="button" data-close="camera-modal" aria-label="Close">×</button></div>
+      <p class="modal-copy">Camera is off until you start it. KAREN analyses only the frame you capture, not a continuous recording.</p>
+      <video id="camera-video" autoplay muted playsinline></video>
+      <div class="button-row"><button class="secondary-button" id="start-camera" type="button">START CAMERA</button><button class="primary-button" id="capture-camera" type="button" disabled>CAPTURE & ANALYZE</button></div>
+      <canvas id="camera-canvas" hidden></canvas>
+      <div class="inline-status" id="camera-status">Camera is off.</div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" id="dashboard-modal" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="dashboard-title">
+      <div class="modal-heading"><div><div class="eyebrow">DEVICE TELEMETRY</div><h2 id="dashboard-title">System dashboard</h2></div><button class="icon-button close-modal" type="button" data-close="dashboard-modal" aria-label="Close">×</button></div>
+      <div class="dashboard-grid" id="dashboard-grid">
+        <div class="metric-card"><span>DEVICE BRIDGE</span><b id="metric-bridge">OFFLINE</b></div>
+        <div class="metric-card"><span>CPU</span><b id="metric-cpu">--</b></div>
+        <div class="metric-card"><span>MEMORY</span><b id="metric-memory">--</b></div>
+        <div class="metric-card"><span>BATTERY</span><b id="metric-battery">--</b></div>
+      </div>
+      <p class="modal-copy" id="dashboard-note">Connect the local companion to read telemetry from this computer. Without it, Codespaces can only report its own cloud environment.</p>
+      <button class="secondary-button" id="refresh-dashboard" type="button">REFRESH STATUS</button>
+    </section>
+  </div>
+
   <div class="toast" id="toast" role="status"></div>
 </body>
 </html>
