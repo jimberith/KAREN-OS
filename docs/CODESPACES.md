@@ -136,3 +136,48 @@ Gemini can return HTTP 503 when a model is temporarily overloaded. KAREN retries
 ## Read-timeout handling
 
 Codespaces logs may show `httpx.ReadTimeout` instead of an HTTP 503. KAREN now uses a 20-second read timeout and immediately tries its configured fallback models when the current model times out. Gemini HTTP 503 responses are retried once with a short delay. Default lighter fallbacks are `gemini-3.5-flash-lite` and `gemini-3.1-flash-lite`, which are listed in Google's current stable model catalogue. The chat context is limited to the last 12 messages and 2,500 characters per message to reduce latency.
+
+
+## KAREN OS v0.4.0 quick start
+
+The Codespaces dev container installs web and local-agent dependencies during creation. After pulling the latest repository code, run the single web launcher:
+
+```bash
+git pull --ff-only origin main
+python -m pip install -e ".[web,agent]"
+karenos-web
+```
+
+Port 8000 is configured for private forwarding. Open the **Ports** tab and launch port 8000 in the browser. If the app is already running, `karenos-web` detects the healthy server and will not start a duplicate process.
+
+The main command box automatically routes phrases such as:
+
+- `Search the web for the latest ...`
+- `Remember that ...`
+- `What do you remember?`
+- `Generate an image of ...`
+- `Open YouTube`
+- `Launch calculator`
+- `Mute volume`
+- `Show system status`
+
+Search, memory, vision and image generation are server features. For camera analysis, click **CAMERA** or **IMAGE**; the user chooses the frame/file to send.
+
+### Connect the local companion once
+
+Codespaces runs in the cloud, so it cannot directly open applications or change volume on your laptop. On the physical computer, clone the repository and run:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[agent]"
+karenos-agent
+```
+
+On first start, the agent prints a private one-time token and saves it to `~/.config/karenos/agent_token` (or the platform's config directory). In KAREN OS, open **Settings**, enter `http://127.0.0.1:8765` and paste the token. Save and connect once; the browser remembers these local settings. If the browser asks permission to access the local network, allow it for your KAREN Codespaces site.
+
+The companion only listens on `127.0.0.1`. It supports a short app/website allowlist, Linux volume commands through PipeWire/PulseAudio, and basic system telemetry. Every action requires an explicit confirmation in the browser. It never accepts arbitrary shell commands. Close the terminal to stop it.
+
+For public hosting, configure `KAREN_REQUIRE_ACCESS_CODE=true` and a strong `KAREN_ACCESS_PASSWORD`. Public URLs must not expose an unauthenticated AI API endpoint or public local-agent port.
+
+See [FEATURES.md](FEATURES.md) for supported commands, architecture and limitations.
